@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Radio</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+
+        ::view-transition-old(root) {
+            z-index: 1;
+        }
+
+        ::view-transition-new(root) {
+            z-index: 2;
+        }
+        body {
+            background: url('https://source.unsplash.com/random/1920x1080?technology') no-repeat center center fixed;
+            background-size: cover;
+            font-family: sans-serif;
+        }
+
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="container mx-auto p-4" x-data="radioApp()">
+        <header class="text-center mb-8 fade-in view-transition-name-header">
+            <h1 class="text-3xl font-bold">AI Radio with Comedic Agent</h1>
+            <p class="text-gray-400">Powered by Gemini 2.0 FLASH API</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bento-grid">
+            <!-- Now Playing -->
+            <div class="glassmorphism p-4 rounded-lg fade-in view-transition-name-now-playing">
+                <h2 class="text-xl font-semibold mb-2">Now Playing</h2>
+                <p x-text="currentSong.title || 'Request a song!'"></p>
+                <p class="text-gray-400" x-text="currentSong.artist || ''"></p>
+                <button @click="stopMusic" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-2">Stop Music</button>
+
+            </div>
+
+            <!-- Request Song -->
+            <div class="glassmorphism p-4 rounded-lg fade-in view-transition-name-request">
+                <h2 class="text-xl font-semibold mb-2">Request a Song</h2>
+                <input type="text" x-model="songRequest" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 text-black" placeholder="Enter song or artist">
+                <button @click="requestSong()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2">Request</button>
+                <p x-text="requestResponse" class="mt-2 text-sm text-green-400"></p>
+            </div>
+
+            <!-- News & Weather -->
+            <div class="glassmorphism p-4 rounded-lg fade-in view-transition-name-news">
+                <h2 class="text-xl font-semibold mb-2">News & Weather</h2>
+                <p x-text="news"></p>
+                <p x-text="weather"></p>
+                <button @click="getNewsAndWeather()" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-2">Update News</button>
+            </div>
+
+            <!-- Quick Quiz -->
+            <div class="glassmorphism p-4 rounded-lg fade-in view-transition-name-quiz">
+                <h2 class="text-xl font-semibold mb-2">Quick Quiz</h2>
+                <p x-text="quizQuestion"></p>
+                <input type="text" x-model="quizAnswer" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 text-black" placeholder="Your answer">
+                <button @click="submitQuiz()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2">Submit</button>
+                <p x-text="quizResult" class="mt-2 text-sm"></p>
+            </div>
+
+            <!-- Jokes -->
+            <div class="glassmorphism p-4 rounded-lg fade-in view-transition-name-jokes">
+                <h2 class="text-xl font-semibold mb-2">Joke of the Day</h2>
+                <p x-text="joke"></p>
+                <button @click="getJoke()" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mt-2">Tell Another Joke</button>
+            </div>
+
+              <!-- AI Agent Feedback -->
+             <div class="glassmorphism p-4 rounded-lg fade-in view-transition-name-agent">
+                <h2 class="text-xl font-semibold mb-2">AI Agent Feedback</h2>
+                <p x-text="agentFeedback"></p>
+            </div>
+
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('radioApp', () => ({
+                currentSong: { title: null, artist: null },
+                songRequest: '',
+                requestResponse: '',
+                news: 'Loading news...',
+                weather: 'Loading weather...',
+                quizQuestion: 'Loading quiz...',
+                quizAnswer: '',
+                quizResult: '',
+                joke: 'Loading joke...',
+                agentFeedback: '',
+                musicPlaying: false,
+
+                init() {
+                    this.getNewsAndWeather();
+                    this.getQuiz();
+                    this.getJoke();
+                },
+
+                async requestSong() {
+                    this.requestResponse = 'Processing request...';
+                    // **Replace with your actual Gemini 2.0 FLASH API call**
+                    // This is a placeholder, you'll need to implement the API call.
+                    try {
+                        const response = await this.getAiResponse(`Play the song: ${this.songRequest}.  Respond with only song title and artist name.`);
+                        if(response && response.includes("title:")) {
+                            let parts = response.split(", artist:");
+                            let title = parts[0].replace("title:", "").trim();
+                            let artist = parts[1].trim();
+                            this.currentSong = { title: title, artist: artist };
+                            this.requestResponse = 'Now playing!';
+                            this.playMusic();
+                            this.agentFeedback = "Great choice! I'm playing " + title + " by " + artist + ". Hope you enjoy it!";
+                        } else {
+                              this.requestResponse = 'Could not find that song.';
+                              this.currentSong = {title: null, artist: null};
+                              this.agentFeedback = "Hmm, I'm having trouble finding that song. Maybe try a different one?";
+                        }
+
+
+                    } catch (error) {
+                        console.error('Error requesting song:', error);
+                        this.requestResponse = 'Error processing request.';
+                        this.currentSong = {title: null, artist: null};
+                        this.agentFeedback = "Oops! Something went wrong.  Please try again later.";
+                    }
+                },
+
+                async getNewsAndWeather() {
+                    try {
+                        const newsResponse = await this.getAiResponse("Give me a short news update for today.");
+                        const weatherResponse = await this.getAiResponse("Give me a short weather update for today.");
+
+                        this.news = newsResponse;
+                        this.weather = weatherResponse;
+
+                        this.agentFeedback = "Here's the latest news and weather.  Stay informed and stay safe!";
+
+
+                    } catch (error) {
+                        console.error('Error getting news and weather:', error);
+                        this.news = 'Failed to load news.';
+                        this.weather = 'Failed to load weather.';
+                        this.agentFeedback = "Sorry, I couldn't retrieve the news and weather right now.  Please check back later!";
+                    }
+                },
+
+                async getQuiz() {
+                    try {
+                         const quizResponse = await this.getAiResponse("Ask me a very simple trivia question.  Respond with ONLY the question.");
+                         this.quizQuestion = quizResponse;
+                         this.quizAnswer = '';
+                         this.quizResult = '';
+                    } catch (error) {
+                        console.error('Error getting quiz:', error);
+                        this.quizQuestion = 'Failed to load quiz.';
+                    }
+                },
+
+                async submitQuiz() {
+                    // Placeholder: Check quizAnswer against correct answer (implement with Gemini)
+                    // For simplicity, just provide a random response.
+                    try {
+                        const answerCheck = await this.getAiResponse("Check the answer: " + this.quizAnswer + " to the question: " + this.quizQuestion + ".  Respond with only correct or incorrect.");
+                        if(answerCheck.toLowerCase().includes("correct")) {
+                              this.quizResult = 'Correct!';
+                              this.agentFeedback = "That's right! You're a trivia master!";
+                        } else {
+                              this.quizResult = 'Incorrect.';
+                              this.agentFeedback = "Oops! Not quite. Better luck next time!";
+                        }
+
+                    } catch (error) {
+                        console.error('Error submitting quiz:', error);
+                        this.quizResult = 'Error checking answer.';
+                    }
+                },
+
+                async getJoke() {
+                   try {
+                       const jokeResponse = await this.getAiResponse("Tell me a very short joke.");
+                       this.joke = jokeResponse;
+                       this.agentFeedback = "Hope that gave you a chuckle!";
+                   } catch (error) {
+                       console.error('Error getting joke:', error);
+                       this.joke = 'Failed to load joke.';
+                       this.agentFeedback = "My apologies, my humor circuits seem to be down. I'll try another joke later!";
+                   }
+                },
+
+                async getAiResponse(prompt) {
+                    // **REPLACE WITH YOUR GEMINI 2.0 FLASH API CALL**
+                    // This is a placeholder function.  Implement your API interaction here.
+                    // Ensure proper API key handling and error handling.
+                    console.log("Sending prompt to AI: " + prompt);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+                    const responses = {
+                        "Play the song: Bohemian Rhapsody.  Respond with only song title and artist name.": "title: Bohemian Rhapsody, artist: Queen",
+                        "Give me a short news update for today.": "The local cat shelter is overcrowded. The stock market continues to be volatile.",
+                        "Give me a short weather update for today.": "Expect sunshine and a high of 75 degrees.",
+                        "Ask me a very simple trivia question.  Respond with ONLY the question.": "What is the capital of France?",
+                        "Tell me a very short joke.": "Why don't scientists trust atoms? Because they make up everything!",
+                        "Check the answer: Paris to the question: What is the capital of France?.  Respond with only correct or incorrect.": "correct",
+                        "Check the answer: London to the question: What is the capital of France?.  Respond with only correct or incorrect.": "incorrect"
+                    };
+                    let ai_response = responses[prompt];
+                    if(ai_response == null) {
+                        return "AI Unavailable. Please try again later.  Prompt was: " + prompt;
+                    }
+                    return ai_response;
+                },
+
+                playMusic() {
+                    this.musicPlaying = true;
+                    this.agentFeedback = "Playing music now!"
+                },
+
+                stopMusic() {
+                    this.musicPlaying = false;
+                    this.currentSong = {title: null, artist: null}
+                    this.agentFeedback = "Music stopped."
+                }
+            }))
+        })
+    </script>
+</body>
+</html>
