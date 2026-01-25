@@ -3,559 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luxury Hotel Chat Themes | Digital Concierge Infographic</title>
+    <title>ZAR Concierge - Value Estimator</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            /* Palette: Vibrant & Energetic (Inspired by "Brilliant Blues" / "Electric Indigo") */
-            --primary: #4338ca; /* Indigo 700 */
-            --secondary: #db2777; /* Pink 600 */
-            --accent: #059669; /* Emerald 600 */
-            --background: #f3f4f6; /* Gray 100 */
-            --surface: #ffffff;
-            --text-main: #1f2937;
-        }
-
-        body {
-            font-family: 'Lato', sans-serif;
-            background-color: var(--background);
-            color: var(--text-main);
-        }
-
-        h1, h2, h3, .serif-font {
-            font-family: 'Playfair Display', serif;
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 400px;
-            max-height: 400px;
-            background-color: white;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        @media (max-width: 768px) {
-            .chart-container {
-                height: 300px;
-            }
-        }
-        
-        /* Custom scrollbar for modern feel */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #888; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555; 
-        }
-
-        .theme-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .theme-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .burger-card { transition: all 0.3s ease; border: 2px solid transparent; }
+        .burger-card:hover { transform: translateY(-2px); }
+        .burger-card.selected { border-color: #3b82f6; background-color: #eff6ff; }
+        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
     </style>
-    <!-- 
-    Source Analysis & Narrative Plan:
-    1.  **Subject:** 5-Star Hotel Chat Interface Themes (Midnight Velvet, Daybreak Marble, Kyoto Zen, Neo-Art Deco, Sapphire Horizon).
-    2.  **Narrative:** "The Digital Concierge." We explore how visual design dictates the guest experience, moving from comparative analysis of "Vibes" to deep dives into each aesthetic, and finally looking at the emotional impact.
-    3.  **Visualization Strategy (No SVG/Mermaid):**
-        * **Vibe Comparison (Radar Chart - Chart.js):** Comparing the 5 themes across 5 axes (Darkness, Opulence, Minimalism, Nature, Tech). Goal: Compare.
-        * **Theme Deep Dive (HTML Cards):** Structured layout for textual/color data. Goal: Inform.
-        * **Emotional Intensity (Bubble Chart - Plotly Canvas):** Mapping themes on Intimacy vs. Energy axes. Goal: Relationships.
-        * **Implementation Process (HTML Flow):** Vertical timeline using Tailwind borders. Goal: Organize.
-    -->
-    <!-- Palette Used: Electric Indigo & Vibrant Pink (High Contrast/Stylish) -->
-    <!-- NEITHER Mermaid JS NOR SVG were used anywhere in the output. -->
 </head>
-<body class="bg-gray-100 text-gray-800 antialiased">
+<body>
+    <div id="root"></div>
 
-    <!-- Header / Hero -->
-    <header class="bg-indigo-900 text-white py-12 px-4 shadow-xl mb-10">
-        <div class="max-w-6xl mx-auto text-center">
-            <h1 class="text-4xl md:text-6xl font-bold mb-4">The Digital Concierge</h1>
-            <p class="text-xl md:text-2xl font-light text-indigo-200">5 Aesthetic Frameworks for 5-Star Hospitality</p>
-            <div class="mt-8 flex justify-center space-x-4">
-                <span class="px-4 py-1 bg-indigo-800 rounded-full text-xs uppercase tracking-widest">UI/UX Design</span>
-                <span class="px-4 py-1 bg-indigo-800 rounded-full text-xs uppercase tracking-widest">Hospitality</span>
-                <span class="px-4 py-1 bg-indigo-800 rounded-full text-xs uppercase tracking-widest">Data Viz</span>
-            </div>
-        </div>
-    </header>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16 pb-20">
-
-        <!-- Section 1: Comparative Overview -->
-        <section>
-            <div class="max-w-4xl mx-auto text-center mb-10">
-                <h2 class="text-3xl font-bold text-gray-900 mb-4">Defining the Vibe</h2>
-                <p class="text-lg text-gray-600">
-                    Luxury is not monolithic. A concierge interface must mirror the physical environment of the hotel. 
-                    We analyzed five distinct design themes based on key aesthetic attributes: Darkness (Intimacy), 
-                    Opulence (Traditional Luxury), Minimalism (Simplicity), Organic (Natural Elements), and Tech-Forwardness.
-                    The chart below reveals the distinct "fingerprint" of each theme.
-                </p>
-            </div>
-
-            <!-- Radar Chart Container -->
-            <div class="w-full flex justify-center">
-                <div class="chart-container">
-                    <canvas id="vibeRadarChart"></canvas>
-                </div>
-            </div>
-            <div class="text-center mt-4 text-sm text-gray-500 italic">
-                Fig 1. Multivariate analysis of aesthetic attributes across the five design themes.
-            </div>
-        </section>
-
-        <!-- Section 2: Theme Deep Dives (Cards) -->
-        <section>
-            <div class="mb-10 border-b-2 border-indigo-100 pb-4">
-                <h2 class="text-3xl font-bold text-gray-900">The 5 Themes in Detail</h2>
-                <p class="mt-2 text-gray-600">
-                    A comprehensive breakdown of the visual language, color theory, and atmospheric goals for each concept.
-                    These profiles serve as the blueprint for UI development.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                
-                <!-- Card 1: Midnight Velvet -->
-                <article class="theme-card bg-white rounded-xl overflow-hidden shadow-lg border-t-4 border-yellow-600">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold text-gray-900">Midnight Velvet</h3>
-                            <span class="text-2xl">🌙</span>
-                        </div>
-                        <p class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Nocturnal Elegance</p>
-                        <p class="text-gray-700 mb-4 text-sm">
-                            Inspired by exclusive speakeasies. A dark mode aesthetic that feels intimate and expensive.
-                            <br><br>
-                            <strong>Vibe:</strong> Private, Exclusive, Mysterious.
-                        </p>
-                        
-                        <div class="mb-4">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Palette</h4>
-                            <div class="flex space-x-2">
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #1A1A1A;" title="Charcoal"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #D4AF37;" title="Gold"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #2C3E50;" title="Deep Navy"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-3 rounded text-xs text-gray-600 italic">
-                            "Text bubbles appear as glowing, translucent panels on matte black."
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Card 2: Daybreak Marble -->
-                <article class="theme-card bg-white rounded-xl overflow-hidden shadow-lg border-t-4 border-gray-400">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold text-gray-900">Daybreak Marble</h3>
-                            <span class="text-2xl">🏛️</span>
-                        </div>
-                        <p class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Classic Opulence</p>
-                        <p class="text-gray-700 mb-4 text-sm">
-                            Draws from grand European lobbies. Focused on natural stone materials and bright light.
-                            <br><br>
-                            <strong>Vibe:</strong> Fresh, Clean, Traditional.
-                        </p>
-                        
-                        <div class="mb-4">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Palette</h4>
-                            <div class="flex space-x-2">
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #FFFFFF;" title="White"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #F5F5F5;" title="Light Gray"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #333333;" title="Dark Gray"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #B8C6DB;" title="Soft Blue"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-3 rounded text-xs text-gray-600 italic">
-                            "Crisp white chat bubbles with subtle shadows on marble texture."
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Card 3: Kyoto Zen -->
-                <article class="theme-card bg-white rounded-xl overflow-hidden shadow-lg border-t-4 border-green-600">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold text-gray-900">Kyoto Zen</h3>
-                            <span class="text-2xl">🌿</span>
-                        </div>
-                        <p class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Organic Minimalism</p>
-                        <p class="text-gray-700 mb-4 text-sm">
-                            Inspired by high-end ryokans. Focuses on texture (Washi paper, wood grain) over flat color.
-                            <br><br>
-                            <strong>Vibe:</strong> Calming, Restorative, Natural.
-                        </p>
-                        
-                        <div class="mb-4">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Palette</h4>
-                            <div class="flex space-x-2">
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #E8DCCA;" title="Beige"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #8F9779;" title="Sage Green"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #6D5948;" title="Walnut"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-3 rounded text-xs text-gray-600 italic">
-                            "Rounded, organic shapes for UI elements on light oak backgrounds."
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Card 4: Neo-Art Deco -->
-                <article class="theme-card bg-white rounded-xl overflow-hidden shadow-lg border-t-4 border-emerald-800">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold text-gray-900">Neo-Art Deco</h3>
-                            <span class="text-2xl">💎</span>
-                        </div>
-                        <p class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Glamorous Geometry</p>
-                        <p class="text-gray-700 mb-4 text-sm">
-                            A modern twist on 1920s glamour. Great Gatsby meets modern tech with bold patterns.
-                            <br><br>
-                            <strong>Vibe:</strong> Celebratory, Artistic, Bold.
-                        </p>
-                        
-                        <div class="mb-4">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Palette</h4>
-                            <div class="flex space-x-2">
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #0B3D35;" title="Emerald"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #E0C097;" title="Champagne"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #000000;" title="Black"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-3 rounded text-xs text-gray-600 italic">
-                            "Geometric sunburst patterns in low contrast with jewel tone accents."
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Card 5: Sapphire Horizon -->
-                <article class="theme-card bg-white rounded-xl overflow-hidden shadow-lg border-t-4 border-blue-500">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold text-gray-900">Sapphire Horizon</h3>
-                            <span class="text-2xl">🌊</span>
-                        </div>
-                        <p class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Resort & Marine</p>
-                        <p class="text-gray-700 mb-4 text-sm">
-                            Tailored for waterfront resorts. Mimics the gradient colors of sea and sky at dusk.
-                            <br><br>
-                            <strong>Vibe:</strong> Breezy, Fluid, Relaxing.
-                        </p>
-                        
-                        <div class="mb-4">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Palette</h4>
-                            <div class="flex space-x-2">
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #0F2027;" title="Deep Blue"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #203A43;" title="Teal"></div>
-                                <div class="w-8 h-8 rounded-full border border-gray-200" style="background-color: #2C5364;" title="Horizon Blue"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-3 rounded text-xs text-gray-600 italic">
-                            "Glassmorphism effects (frosted glass) to maintain a water-like feel."
-                        </div>
-                    </div>
-                </article>
-
-            </div>
-        </section>
-
-        <!-- Section 3: Emotional & Visual Positioning (Plotly) -->
-        <section class="bg-white rounded-xl shadow-lg p-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-                <div class="lg:col-span-1">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Emotional Mapping</h2>
-                    <p class="text-gray-600 mb-6">
-                        By mapping these themes on a coordinate system of "Energy" (Calm vs. Dynamic) and "Tone" (Natural vs. Constructed), we can better position a hotel brand.
-                        <br><br>
-                        <strong>Kyoto Zen</strong> anchors the calm/natural quadrant, while <strong>Neo-Art Deco</strong> pushes the boundaries of constructed energy.
-                    </p>
-                    <ul class="space-y-2 text-sm text-gray-500">
-                        <li class="flex items-center"><span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span> Natural / Organic</li>
-                        <li class="flex items-center"><span class="w-3 h-3 bg-purple-600 rounded-full mr-2"></span> Constructed / Glamour</li>
-                        <li class="flex items-center"><span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span> Aquatic / Fluid</li>
-                    </ul>
-                </div>
-                <div class="lg:col-span-2">
-                    <div id="plotlyChart" class="w-full h-96 border border-gray-100 rounded-lg"></div>
-                    <div class="text-center mt-2 text-sm text-gray-400 italic">
-                        Fig 2. Interactive scatter plot: Bubble size represents "Exclusivity Perception".
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section 4: Implementation Process Flow -->
-        <section>
-            <div class="text-center mb-10">
-                <h2 class="text-3xl font-bold text-gray-900">From Concept to Deployment</h2>
-                <p class="text-gray-600 max-w-2xl mx-auto mt-2">
-                    The journey of implementing a luxury chat theme requires a disciplined design process.
-                </p>
-            </div>
-
-            <!-- CSS Grid / Flexbox Process Flow (No Mermaid/SVG) -->
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                
-                <!-- Step 1 -->
-                <div class="relative bg-white p-6 rounded-lg shadow-md border-t-4 border-indigo-500 flex flex-col items-center text-center">
-                    <div class="text-3xl mb-2">💡</div>
-                    <h4 class="font-bold text-gray-800">Analysis</h4>
-                    <p class="text-xs text-gray-500 mt-2">Identify Brand Voice & Guest Profile</p>
-                    <!-- Connector arrow for desktop -->
-                    <div class="hidden md:block absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-300 text-xl">➜</div>
-                    <!-- Connector arrow for mobile -->
-                    <div class="md:hidden text-gray-300 text-xl mt-2">⬇</div>
-                </div>
-
-                <!-- Step 2 -->
-                <div class="relative bg-white p-6 rounded-lg shadow-md border-t-4 border-pink-500 flex flex-col items-center text-center">
-                    <div class="text-3xl mb-2">🎨</div>
-                    <h4 class="font-bold text-gray-800">Selection</h4>
-                    <p class="text-xs text-gray-500 mt-2">Choose Theme (e.g., Midnight Velvet)</p>
-                     <div class="hidden md:block absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-300 text-xl">➜</div>
-                     <div class="md:hidden text-gray-300 text-xl mt-2">⬇</div>
-                </div>
-
-                <!-- Step 3 -->
-                <div class="relative bg-white p-6 rounded-lg shadow-md border-t-4 border-purple-500 flex flex-col items-center text-center">
-                    <div class="text-3xl mb-2">🤖</div>
-                    <h4 class="font-bold text-gray-800">Generation</h4>
-                    <p class="text-xs text-gray-500 mt-2">AI Prompts for Assets & Backgrounds</p>
-                     <div class="hidden md:block absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-300 text-xl">➜</div>
-                     <div class="md:hidden text-gray-300 text-xl mt-2">⬇</div>
-                </div>
-
-                <!-- Step 4 -->
-                <div class="relative bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-500 flex flex-col items-center text-center">
-                    <div class="text-3xl mb-2">🔧</div>
-                    <h4 class="font-bold text-gray-800">Build</h4>
-                    <p class="text-xs text-gray-500 mt-2">Tailwind CSS & Glassmorphism</p>
-                     <div class="hidden md:block absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-300 text-xl">➜</div>
-                     <div class="md:hidden text-gray-300 text-xl mt-2">⬇</div>
-                </div>
-
-                <!-- Step 5 -->
-                <div class="relative bg-white p-6 rounded-lg shadow-md border-t-4 border-green-500 flex flex-col items-center text-center">
-                    <div class="text-3xl mb-2">✨</div>
-                    <h4 class="font-bold text-gray-800">Launch</h4>
-                    <p class="text-xs text-gray-500 mt-2">Guest Interaction & Feedback</p>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Conclusion -->
-        <footer class="mt-16 border-t border-gray-200 pt-10 text-center">
-            <h3 class="text-2xl font-serif text-gray-800 mb-4">Elevating the Invisible</h3>
-            <p class="text-gray-600 max-w-xl mx-auto mb-8">
-                In a digital-first world, the chat interface is often the first human touchpoint. 
-                Whether it is the serenity of <em>Kyoto Zen</em> or the drama of <em>Midnight Velvet</em>, 
-                design choice directly influences guest satisfaction scores.
-            </p>
-            <div class="text-sm text-gray-400 pb-8">
-                &copy; 2024 Luxury Digital Concepts. Generated with Tailwind & Chart.js.
-            </div>
-        </footer>
-
-    </main>
-
-    <script>
-        // --- UTILITY: Label Wrapping for Chart.js (Strict 16-char requirement) ---
-        function wrapLabels(labels) {
-            return labels.map(label => {
-                if (label.length <= 16) return label;
-                const words = label.split(' ');
-                const lines = [];
-                let currentLine = words[0];
-
-                for (let i = 1; i < words.length; i++) {
-                    if ((currentLine + " " + words[i]).length <= 16) {
-                        currentLine += " " + words[i];
-                    } else {
-                        lines.push(currentLine);
-                        currentLine = words[i];
-                    }
-                }
-                lines.push(currentLine);
-                return lines;
+        const App = () => {
+            const [rooms, setRooms] = useState(18);
+            const [features, setFeatures] = useState({
+                base: true,
+                multilang: false,
+                dashboard: false,
+                managerTools: false,
+                whatsapp: false
             });
-        }
 
-        // --- CHART 1: Vibe Radar Chart (Chart.js) ---
-        const ctxRadar = document.getElementById('vibeRadarChart').getContext('2d');
-        
-        // Data derived from Qualitative Analysis of themes
-        // Axes: Darkness, Modernity, Opulence, Organic, Relaxation
-        const radarData = {
-            labels: ['Darkness / Intimacy', 'Modernity / Tech', 'Opulence / Luxury', 'Organic / Natural', 'Relaxation / Calm'],
-            datasets: [
-                {
-                    label: 'Midnight Velvet',
-                    data: [9, 7, 9, 2, 5],
-                    borderColor: '#1A1A1A',
-                    backgroundColor: 'rgba(26, 26, 26, 0.2)',
-                    pointBackgroundColor: '#D4AF37',
-                    borderWidth: 2
-                },
-                {
-                    label: 'Daybreak Marble',
-                    data: [1, 5, 8, 4, 6],
-                    borderColor: '#B8C6DB',
-                    backgroundColor: 'rgba(184, 198, 219, 0.2)',
-                    pointBackgroundColor: '#333333',
-                    borderWidth: 2
-                },
-                {
-                    label: 'Kyoto Zen',
-                    data: [3, 6, 5, 10, 10],
-                    borderColor: '#8F9779',
-                    backgroundColor: 'rgba(143, 151, 121, 0.2)',
-                    pointBackgroundColor: '#6D5948',
-                    borderWidth: 2
-                },
-                {
-                    label: 'Neo-Art Deco',
-                    data: [8, 4, 10, 1, 3],
-                    borderColor: '#0B3D35',
-                    backgroundColor: 'rgba(11, 61, 53, 0.2)',
-                    pointBackgroundColor: '#E0C097',
-                    borderWidth: 2
-                },
-                {
-                    label: 'Sapphire Horizon',
-                    data: [6, 9, 6, 7, 9],
-                    borderColor: '#2C5364',
-                    backgroundColor: 'rgba(44, 83, 100, 0.2)',
-                    pointBackgroundColor: '#203A43',
-                    borderWidth: 2
-                }
-            ]
+            const [costs, setCosts] = useState({ monthly: 0, setup: 0 });
+
+            // Pricing Constants
+            const PRICES = {
+                base: { setup: 4999, monthly: 999 },
+                multilang: { setup: 2500, monthly: 500 },
+                dashboard: { setup: 3500, monthly: 750 },
+                managerTools: { setup: 5000, monthly: 1250 },
+                whatsapp: { setup: 3500, monthly: 450 }
+            };
+
+            const calculateRoomCost = (numRooms) => {
+                if (numRooms <= 18) return 0;
+                let cost = 0;
+                let count = numRooms - 18;
+
+                // Tier 1: Rooms 19-50 (32 rooms max) @ R45
+                const tier1Count = Math.min(count, 32);
+                cost += tier1Count * 45;
+                count -= tier1Count;
+
+                if (count <= 0) return cost;
+
+                // Tier 2: Rooms 51-100 (50 rooms max) @ R35
+                const tier2Count = Math.min(count, 50);
+                cost += tier2Count * 35;
+                count -= tier2Count;
+
+                if (count <= 0) return cost;
+
+                // Tier 3: Rooms 101+ @ R25
+                cost += count * 25;
+                return cost;
+            };
+
+            useEffect(() => {
+                let monthly = PRICES.base.monthly;
+                let setup = PRICES.base.setup;
+
+                if (features.multilang) { monthly += PRICES.multilang.monthly; setup += PRICES.multilang.setup; }
+                if (features.dashboard) { monthly += PRICES.dashboard.monthly; setup += PRICES.dashboard.setup; }
+                if (features.managerTools) { monthly += PRICES.managerTools.monthly; setup += PRICES.managerTools.setup; }
+                if (features.whatsapp) { monthly += PRICES.whatsapp.monthly; setup += PRICES.whatsapp.setup; }
+
+                // Add Room Scaling
+                monthly += calculateRoomCost(rooms);
+
+                setCosts({ monthly, setup });
+            }, [rooms, features]);
+
+            const toggleFeature = (key) => {
+                setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
+            };
+
+            const formatCurrency = (val) => {
+                return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(val);
+            };
+
+            return (
+                <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
+                    {/* Header */}
+                    <header className="mb-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-800">ZAR Digital Concierge</h1>
+                            <p className="text-gray-500">Value Estimator & Configuration Tool</p>
+                        </div>
+                        <div className="mt-4 md:mt-0 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-semibold">
+                            v17.0 Production Candidate
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        {/* LEFT COLUMN: Configuration */}
+                        <div className="lg:col-span-2 space-y-6">
+                            
+                            {/* Room Slider Section */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <h2 className="text-xl font-semibold mb-4 flex items-center">
+                                    <i className="fa-solid fa-hotel mr-2 text-blue-600"></i> Property Size
+                                </h2>
+                                <div className="mb-2 flex justify-between items-end">
+                                    <label className="text-sm text-gray-600 font-medium">Number of Rooms</label>
+                                    <span className="text-2xl font-bold text-blue-600">{rooms}</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    min="1" 
+                                    max="200" 
+                                    value={rooms} 
+                                    onChange={(e) => setRooms(parseInt(e.target.value))}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                />
+                                <div className="mt-2 text-xs text-gray-500 flex justify-between">
+                                    <span>1 Room</span>
+                                    <span>First 18 Included in Base</span>
+                                    <span>200+ Rooms</span>
+                                </div>
+                                <div className="mt-4 bg-blue-50 p-3 rounded-lg text-sm text-blue-800 border border-blue-100">
+                                    <i className="fa-solid fa-info-circle mr-2"></i>
+                                    {rooms <= 18 
+                                        ? "Great! The base package includes coverage for up to 18 rooms." 
+                                        : `Adding capacity for ${rooms - 18} extra rooms using our sliding scale efficiency model.`}
+                                </div>
+                            </div>
+
+                            {/* Features "Burger" Builder */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <h2 className="text-xl font-semibold mb-6 flex items-center">
+                                    <i className="fa-solid fa-layer-group mr-2 text-indigo-600"></i> Build Your Solution
+                                </h2>
+
+                                {/* Base Layer (Locked) */}
+                                <div className="flex items-center justify-between p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50 opacity-75">
+                                    <div className="flex items-start">
+                                        <div className="bg-gray-200 p-2 rounded-md mr-4 text-gray-500">
+                                            <i className="fa-solid fa-server fa-lg"></i>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-gray-800">Core AI Engine (The Base)</h3>
+                                            <p className="text-sm text-gray-500">English PWA, No-Login Access, Basic Local Info</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold text-gray-700">{formatCurrency(999)}/mo</div>
+                                        <div className="text-xs text-gray-400">Included</div>
+                                    </div>
+                                </div>
+
+                                {/* Feature Toggles */}
+                                <div className="space-y-4">
+                                    <FeatureToggle 
+                                        active={features.multilang} 
+                                        onClick={() => toggleFeature('multilang')}
+                                        icon="fa-language"
+                                        color="text-green-600"
+                                        title="Multi-Language Pack"
+                                        desc="18 Languages (Zulu, Xhosa, Mandarin...) + Real-time Context"
+                                        price={PRICES.multilang.monthly}
+                                        setup={PRICES.multilang.setup}
+                                    />
+                                    <FeatureToggle 
+                                        active={features.dashboard} 
+                                        onClick={() => toggleFeature('dashboard')}
+                                        icon="fa-chart-line"
+                                        color="text-purple-600"
+                                        title="Manager Dashboard"
+                                        desc="Live Ticketing, Dept. Routing, Housekeeping Views"
+                                        price={PRICES.dashboard.monthly}
+                                        setup={PRICES.dashboard.setup}
+                                    />
+                                    <FeatureToggle 
+                                        active={features.managerTools} 
+                                        onClick={() => toggleFeature('managerTools')}
+                                        icon="fa-brain"
+                                        color="text-pink-600"
+                                        title="AI Manager Tools"
+                                        desc="Auto-Response Drafting, Itinerary Planner, Analytics"
+                                        price={PRICES.managerTools.monthly}
+                                        setup={PRICES.managerTools.setup}
+                                    />
+                                    <FeatureToggle 
+                                        active={features.whatsapp} 
+                                        onClick={() => toggleFeature('whatsapp')}
+                                        icon="fa-brands fa-whatsapp"
+                                        color="text-green-500"
+                                        title="WhatsApp API Integration"
+                                        desc="Pre-arrival chat & direct messaging (Usage fees apply)"
+                                        price={PRICES.whatsapp.monthly}
+                                        setup={PRICES.whatsapp.setup}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* RIGHT COLUMN: The Receipt */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 sticky top-8">
+                                <h2 className="text-xl font-bold mb-6 text-gray-800">Investment Summary</h2>
+                                
+                                {/* One-Time Costs */}
+                                <div className="mb-6 pb-6 border-b border-gray-100">
+                                    <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-3">One-Time Implementation</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Core System Setup</span>
+                                            <span className="font-medium">{formatCurrency(PRICES.base.setup)}</span>
+                                        </div>
+                                        {features.multilang && <ItemRow label="Multi-Language Config" price={PRICES.multilang.setup} />}
+                                        {features.dashboard && <ItemRow label="Dashboard Deployment" price={PRICES.dashboard.setup} />}
+                                        {features.managerTools && <ItemRow label="AI Tools Training" price={PRICES.managerTools.setup} />}
+                                        {features.whatsapp && <ItemRow label="WhatsApp API Setup" price={PRICES.whatsapp.setup} />}
+                                        <div className="flex justify-between pt-2 mt-2 border-t border-dashed border-gray-200 font-bold text-gray-800">
+                                            <span>Total Setup</span>
+                                            <span>{formatCurrency(costs.setup)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Monthly Costs */}
+                                <div className="mb-8">
+                                    <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-3">Monthly Subscription</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Base Subscription (18 Rooms)</span>
+                                            <span className="font-medium">{formatCurrency(PRICES.base.monthly)}</span>
+                                        </div>
+                                        {rooms > 18 && (
+                                            <div className="flex justify-between text-blue-600">
+                                                <span>Room Scaling ({rooms - 18} addtl.)</span>
+                                                <span className="font-medium">{formatCurrency(calculateRoomCost(rooms))}</span>
+                                            </div>
+                                        )}
+                                        {features.multilang && <ItemRow label="Language Pack" price={PRICES.multilang.monthly} />}
+                                        {features.dashboard && <ItemRow label="Manager Dashboard" price={PRICES.dashboard.monthly} />}
+                                        {features.managerTools && <ItemRow label="AI Manager Tools" price={PRICES.managerTools.monthly} />}
+                                        {features.whatsapp && <ItemRow label="WhatsApp Platform Fee" price={PRICES.whatsapp.monthly} />}
+                                        
+                                        <div className="flex justify-between pt-3 mt-3 border-t border-gray-200 text-lg font-bold text-blue-600">
+                                            <span>Total Monthly</span>
+                                            <span>{formatCurrency(costs.monthly)}</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-2">*Excludes VAT. WhatsApp usage billed separately.</p>
+                                </div>
+
+                                <button 
+                                    className="w-full bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+                                    onClick={() => alert("Quote Generated! (This would print to PDF)")}
+                                >
+                                    Generate Formal Quote
+                                </button>
+                                <div className="mt-4 text-center">
+                                    <p className="text-xs text-gray-500">
+                                        <i className="fa-solid fa-lock mr-1"></i> 
+                                        Price locked for 30 days
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
-        // Wrap chart labels just in case (though these are short)
-        radarData.labels = wrapLabels(radarData.labels);
+        const FeatureToggle = ({ active, onClick, icon, color, title, desc, price, setup }) => (
+            <div 
+                onClick={onClick}
+                className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-all ${active ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+            >
+                <div className="flex items-start">
+                    <div className={`p-2 rounded-md mr-4 ${active ? 'bg-white' : 'bg-gray-100'} ${color}`}>
+                        <i className={`fa-solid ${icon} fa-lg`}></i>
+                    </div>
+                    <div>
+                        <h3 className={`font-bold ${active ? 'text-blue-900' : 'text-gray-800'}`}>{title}</h3>
+                        <p className="text-xs text-gray-500 mt-1 max-w-[200px] md:max-w-xs">{desc}</p>
+                    </div>
+                </div>
+                <div className="text-right ml-4">
+                    <div className={`font-bold ${active ? 'text-blue-700' : 'text-gray-700'}`}>+R{price}<span className="text-xs font-normal">/mo</span></div>
+                    <div className="text-xs text-gray-400">+R{setup} Setup</div>
+                </div>
+            </div>
+        );
 
-        new Chart(ctxRadar, {
-            type: 'radar',
-            data: radarData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        max: 10,
-                        ticks: { stepSize: 2 }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            boxWidth: 8
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: function(tooltipItems) {
-                                const item = tooltipItems[0];
-                                let label = item.chart.data.labels[item.dataIndex];
-                                if (Array.isArray(label)) {
-                                    return label.join(' ');
-                                } else {
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        const ItemRow = ({ label, price }) => (
+            <div className="flex justify-between">
+                <span className="text-gray-600">{label}</span>
+                <span className="font-medium">R {price.toLocaleString()}</span>
+            </div>
+        );
 
-        // --- CHART 2: Emotional Positioning Bubble Chart (Plotly.js) ---
-        // Using Plotly to show 3 dimensions: X=Calm->Dynamic, Y=Natural->Constructed, Size=Exclusivity
-        
-        const plotlyData = [{
-            x: [2, 6, 9, 8, 3], // Calm (1) -> Dynamic/Intense (10)
-            y: [2, 3, 4, 9, 5], // Natural (1) -> Constructed (10)
-            text: ['Sapphire Horizon', 'Daybreak Marble', 'Midnight Velvet', 'Neo-Art Deco', 'Kyoto Zen'],
-            mode: 'markers+text',
-            marker: {
-                size: [70, 80, 100, 90, 85], // Exclusivity/Price Perception
-                // Colors matching themes: Sapphire, Marble(Gray), Midnight(Black), ArtDeco(Emerald), Zen(Sage)
-                color: ['#2C5364', '#B8C6DB', '#1A1A1A', '#0B3D35', '#8F9779'],
-                opacity: 0.8,
-                line: {
-                    color: 'white',
-                    width: 2
-                }
-            },
-            textposition: 'center',
-            textfont: {
-                family: 'Lato',
-                size: 10,
-                color: ['white', 'black', '#D4AF37', '#E0C097', 'white']
-            },
-            type: 'scatter'
-        }];
-
-        const plotlyLayout = {
-            title: {
-                text: 'Theme Positioning: Nature vs. Construction',
-                font: { family: 'Playfair Display', size: 20 }
-            },
-            xaxis: {
-                title: 'Atmosphere (Calm → Dynamic)',
-                range: [0, 11],
-                gridcolor: '#f3f4f6'
-            },
-            yaxis: {
-                title: 'Materiality (Organic → Constructed)',
-                range: [0, 11],
-                gridcolor: '#f3f4f6'
-            },
-            hovermode: 'closest',
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)',
-            margin: { t: 40, b: 40, l: 60, r: 20 },
-            showlegend: false
-        };
-
-        const config = { responsive: true, displayModeBar: false };
-        
-        // Ensure Plotly uses Canvas/WebGL where possible, though basic scatter defaults to SVG/Canvas hybrid.
-        // We avoid SVG-only types like 'treemap' if strictly SVG is banned, but Plotly generates div/svg/canvas combos.
-        // The prompt says "AVOID chart types that ONLY render to SVG". Scatter is safe.
-        Plotly.newPlot('plotlyChart', plotlyData, plotlyLayout, config);
-
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
+
