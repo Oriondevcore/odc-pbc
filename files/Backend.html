@@ -1,0 +1,286 @@
+/**
+ * 🚀 ORION DEV CORE - ENTERPRISE BACKEND SYSTEM (v3.0)
+ * Powered by Google Gemini Code Assist
+ * * * FEATURES:
+ * 1. Secure Payment Processing (Yoco) using Script Properties
+ * 2. Auto-Generation of Legal Contracts (SLA + POPIA) as PDFs
+ * 3. Multi-Signature Handling (Client, Provider, Witnesses)
+ * 4. Zero-Touch Database & Folder Creation
+ * * * Author: Graham Schubach & Gemini AI
+ */
+
+// 🟢 CONFIGURATION CONSTANTS
+const CONSTANTS = {
+  DB_NAME: 'ORION_SALES_LEDGER_MASTER',
+  SIG_FOLDER: 'ORION_LEGAL_SIGNATURES',
+  CONTRACT_FOLDER: 'ORION_FINAL_CONTRACTS',
+  CURRENCY: 'ZAR',
+  COMPANY_NAME: 'ORION DEV CORE',
+  OWNER_NAME: 'Graham Schubach'
+};
+
+/**
+ * 🌐 MAIN API ENDPOINT (doPost)
+ * Receives JSON data from your HTML App
+ */
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.tryLock(20000); // 20s lock for complex PDF generation
+
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const orderNumber = 'ORD-' + new Date().getTime().toString().substr(-6);
+
+    // 1. Infrastructure Check (Auto-Create Sheets/Folders)
+    const infra = setupInfrastructure();
+
+    // 2. Process Signatures (Client + Witnesses)
+    // Assumes frontend sends signatures object: { client: base64, witness1: base64, ... }
+    const sigLinks = processSignatures(data.signatures, data.customerName, orderNumber, infra.sigFolder);
+
+    // 3. Generate Yoco Payment Link
+    const totalAmount = data.costs.setup + data.costs.monthly;
+    const paymentLink = generateYocoCheckoutLink(totalAmount, data, orderNumber);
+
+    // 4. Generate Legal Contract (PDF)
+    // This creates a formal SLA/POPIA document with the signatures embedded
+    const contractUrl = generateLegalContract(data, sigLinks, orderNumber, infra.contractFolder);
+
+    // 5. Log to Sales Ledger
+    infra.db.appendRow([
+      new Date(),                 // Timestamp
+      orderNumber,                // Order ID
+      data.hotelName,             // Hotel
+      data.customerName,          // Contact
+      data.email,                 // Email
+      data.phone,                 // Phone
+      data.starRating,            // Stars
+      data.rooms,                 // Rooms
+      data.outlets,               // Outlets
+      data.features.join(", "),   // Features
+      formatCurrency(data.costs.setup),   // Setup
+      formatCurrency(data.costs.monthly), // Monthly
+      formatCurrency(totalAmount),        // Total Due
+      "PENDING",                  // Payment Status
+      paymentLink,                // Payment Link
+      contractUrl,                // LINK TO PDF CONTRACT
+      sigLinks.client             // Raw Signature Link
+    ]);
+
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: 'success', 
+      redirectUrl: paymentLink,
+      contractUrl: contractUrl,
+      orderId: orderNumber
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    Logger.log(error);
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: 'error', 
+      message: error.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * 🔒 SECURE YOCO PAYMENT GENERATOR
+ * Uses ScriptProperties for safety
+ */
+function generateYocoCheckoutLink(amount, data, orderNumber) {
+  const amountInCents = Math.round(amount * 100);
+  
+  // RETRIEVE KEY SECURELY
+  const secretKey = PropertiesService.getScriptProperties().getProperty('YOCO_SECRET_KEY');
+  
+  if (!secretKey) throw new Error("Server Error: Payment Key not configured.");
+
+  const checkoutData = {
+    amount: amountInCents,
+    currency: CONSTANTS.CURRENCY,
+    metadata: {
+      customerName: data.customerName,
+      customerEmail: data.email,
+      orderNumber: orderNumber,
+      description: `Orion Suite Setup: ${data.hotelName}`
+    }
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      'Authorization': 'Bearer ' + secretKey
+    },
+    payload: JSON.stringify(checkoutData),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch('https://payments.yoco.com/api/checkouts', options);
+  const result = JSON.parse(response.getContentText());
+
+  if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+    return result.redirectUrl;
+  } else {
+    throw new Error("Yoco Error: " + (result.message || "Connection Failed"));
+  }
+}
+
+/**
+ * 📜 LEGAL CONTRACT GENERATOR (The Game Changer)
+ * Creates a PDF with POPIA, SLA, No Refund Policy, and Signatures
+ */
+function generateLegalContract(data, sigLinks, orderId, folder) {
+  const docName = `CONTRACT_${data.hotelName}_${orderId}`;
+  const doc = DocumentApp.create(docName);
+  const body = doc.getBody();
+
+  // --- HEADER ---
+  body.insertImage(0, UrlFetchApp.fetch("https://via.placeholder.com/500x100/1e3a8a/ffffff?text=ORION+DEV+CORE").getBlob()); // Replace with your actual Logo URL if hosted
+  body.appendParagraph(`SERVICE LEVEL AGREEMENT & POPIA COMPLIANCE`).setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  body.appendParagraph(`Order Reference: ${orderId}\nDate: ${new Date().toLocaleDateString()}`).setHeading(DocumentApp.ParagraphHeading.SUBTITLE);
+
+  // --- PARTIES ---
+  body.appendParagraph("1. PARTIES").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph(`This agreement is entered into between:\nPROVIDER: ORION DEV CORE (Graham Schubach)\nCLIENT: ${data.hotelName} (Rep: ${data.customerName})`);
+
+  // --- SERVICE SCOPE ---
+  body.appendParagraph("2. SCOPE OF SERVICES").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph(`Orion Dev Core shall provide the AI Hotel Suite configured as follows:\n- Rooms: ${data.rooms} (${data.starRating} Star)\n- Outlets: ${data.outlets}\n- Modules: ${data.features.join(", ")}`);
+
+  // --- FINANCIALS ---
+  body.appendParagraph("3. FINANCIAL AGREEMENT").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph(`ONE-TIME SETUP: ${formatCurrency(data.costs.setup)}\nMONTHLY FEE: ${formatCurrency(data.costs.monthly)}\n\nIMPORTANT: Prices exclude VAT. Payment is due immediately upon receipt of invoice.`);
+
+  // --- NO REFUND POLICY (Strict) ---
+  body.appendParagraph("4. REFUND & CANCELLATION POLICY").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph("STRICTLY NO REFUNDS on Setup Fees or Implementation Costs once work has commenced. The Client acknowledges that setup fees cover intellectual property configuration, server provisioning, and staff training time which cannot be recovered.");
+
+  // --- POPIA COMPLIANCE ---
+  body.appendParagraph("5. DATA PROTECTION (POPIA)").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph("Orion Dev Core acts as the 'Operator' and the Client as the 'Responsible Party'. We process guest data solely for the purpose of providing the concierge service. All data is handled in accordance with the Protection of Personal Information Act 2013.");
+  
+  // --- SIGNATURE SECTION ---
+  body.appendParagraph("6. ACCEPTANCE").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph("By signing below, the Client accepts all terms, including the No Refund Policy.");
+
+  // Table for Signatures
+  const table = body.appendTable();
+  const headerRow = table.appendTableRow();
+  headerRow.appendTableCell("CLIENT SIGNATURE").setBackgroundColor('#f3f4f6');
+  headerRow.appendTableCell("ORION DEV CORE").setBackgroundColor('#f3f4f6');
+  
+  const sigRow = table.appendTableRow();
+  
+  // Insert Client Sig Image if it exists
+  const clientCell = sigRow.appendTableCell();
+  if (sigLinks.clientFileId) {
+    const imgBlob = DriveApp.getFileById(sigLinks.clientFileId).getBlob();
+    clientCell.insertImage(0, imgBlob).setWidth(150).setHeight(80);
+    clientCell.appendParagraph(data.customerName);
+  } else {
+    clientCell.setText("[Digitally Signed]");
+  }
+
+  // Insert Your Placeholder Sig
+  const ownerCell = sigRow.appendTableCell();
+  ownerCell.appendParagraph("Graham Schubach\n[Digitally Authorized]");
+
+  // Witness Section if needed
+  if (sigLinks.witness1FileId) {
+      body.appendParagraph("\nWitnessed By:");
+      const wTable = body.appendTable();
+      const wRow = wTable.appendTableRow();
+      const wCell = wRow.appendTableCell();
+      const wImg = DriveApp.getFileById(sigLinks.witness1FileId).getBlob();
+      wCell.insertImage(0, wImg).setWidth(100).setHeight(50);
+  }
+
+  doc.saveAndClose();
+
+  // Convert to PDF
+  const pdfBlob = DriveApp.getFileById(doc.getId()).getAs(MimeType.PDF);
+  const pdfFile = folder.createFile(pdfBlob);
+  
+  // Clean up the temp Doc
+  DriveApp.getFileById(doc.getId()).setTrashed(true);
+
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return pdfFile.getUrl();
+}
+
+/**
+ * 📂 INFRASTRUCTURE SETUP
+ * Creates DB and Folders if they don't exist
+ */
+function setupInfrastructure() {
+  // DB
+  const files = DriveApp.getFilesByName(CONSTANTS.DB_NAME);
+  let sheet;
+  if (files.hasNext()) {
+    sheet = SpreadsheetApp.open(files.next()).getSheets()[0];
+  } else {
+    const ss = SpreadsheetApp.create(CONSTANTS.DB_NAME);
+    sheet = ss.getSheets()[0];
+    const headers = [
+      "TIMESTAMP", "ORDER_ID", "HOTEL", "CONTACT", "EMAIL", "PHONE", "STARS", 
+      "ROOMS", "OUTLETS", "FEATURES", "SETUP_COST", "MONTHLY", "TOTAL_DUE", 
+      "STATUS", "PAYMENT_LINK", "CONTRACT_PDF", "RAW_SIG"
+    ];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+         .setBackground("#1e3a8a").setFontColor("white").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+
+  // Signature Folder
+  const sFolders = DriveApp.getFoldersByName(CONSTANTS.SIG_FOLDER);
+  const sFolder = sFolders.hasNext() ? sFolders.next() : DriveApp.createFolder(CONSTANTS.SIG_FOLDER);
+
+  // Contract Folder
+  const cFolders = DriveApp.getFoldersByName(CONSTANTS.CONTRACT_FOLDER);
+  const cFolder = cFolders.hasNext() ? cFolders.next() : DriveApp.createFolder(CONSTANTS.CONTRACT_FOLDER);
+
+  return { db: sheet, sigFolder: sFolder, contractFolder: cFolder };
+}
+
+/**
+ * ✍️ PROCESS SIGNATURES
+ * Decodes base64 images and saves to Drive
+ */
+function processSignatures(signaturesObj, name, orderId, folder) {
+  const result = { client: "", clientFileId: null, witness1FileId: null };
+
+  // Helper to save one sig
+  const saveSig = (base64, suffix) => {
+    try {
+      if (!base64) return null;
+      const clean = base64.split(',')[1] || base64;
+      const blob = Utilities.newBlob(Utilities.base64Decode(clean), MimeType.PNG, `${orderId}_${suffix}.png`);
+      return folder.createFile(blob);
+    } catch (e) { return null; }
+  };
+
+  // Client Sig
+  if (signaturesObj && signaturesObj.client) {
+    const file = saveSig(signaturesObj.client, "CLIENT");
+    if (file) {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      result.client = file.getUrl();
+      result.clientFileId = file.getId();
+    }
+  }
+
+  // Witness Sig (Example logic)
+  if (signaturesObj && signaturesObj.witness1) {
+      const file = saveSig(signaturesObj.witness1, "WITNESS1");
+      if (file) result.witness1FileId = file.getId();
+  }
+
+  return result;
+}
+
+function formatCurrency(val) {
+  return "R " + val.toFixed(2); // Simple formatter for the PDF
+}
