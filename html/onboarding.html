@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion Onboarding | Setup Wizard</title>
+    
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Fonts: Quicksand -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Quicksand', 'sans-serif'] },
+                    colors: {
+                        sa: {
+                            blue: '#001d7a',   /* Royal Navy */
+                            red: '#c4261d',    /* Deep Crimson */
+                            gold: '#eab308',   /* Rich Gold */
+                            green: '#007a4d',  /* Flag Green */
+                            slate: '#f1f5f9'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; }
+        .glass-preview {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        /* Phone Frame */
+        .phone-frame {
+            border: 12px solid #1e293b;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            background: white;
+            aspect-ratio: 9/19;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .notch {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 40%; height: 25px; bg-color: #1e293b;
+            border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
+            z-index: 50; background: #1e293b;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const App = () => {
+            const [step, setStep] = useState(1);
+            
+            // --- DATABASE SCHEMA SIMULATION ---
+            const [hotelData, setHotelData] = useState({
+                // Identity
+                name: "The Oyster Box",
+                brandColor: "#c4261d", // Default SA Red
+                logo: null,
+                
+                // Integrations
+                pms: "nightsbridge",
+                pmsKey: "",
+                pos: "gaap",
+                yocoKey: "",
+                
+                // Content (RAG Sources)
+                wifiSSID: "Orion_Guest",
+                wifiPass: "Welcome2026",
+                checkIn: "14:00",
+                eskomZone: "KZN-Ethekwini-Kingsburgh",
+                
+                // Modules
+                languages: ["en", "zu", "xh", "af"]
+            });
+
+            // Handlers
+            const updateField = (field, value) => setHotelData(prev => ({ ...prev, [field]: value }));
+            const nextStep = () => setStep(prev => prev + 1);
+            const prevStep = () => setStep(prev => prev - 1);
+
+            return (
+                <div className="min-h-screen flex flex-col lg:flex-row">
+                    
+                    {/* LEFT PANEL: WIZARD INPUTS */}
+                    <div className="w-full lg:w-1/2 p-8 lg:p-12 overflow-y-auto h-screen bg-white shadow-xl z-10">
+                        <div className="max-w-xl mx-auto">
+                            {/* Header */}
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-10 h-10 bg-sa-blue rounded-lg flex items-center justify-center text-white text-xl">
+                                    <i className="ph-bold ph-star-four"></i>
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-sa-blue">Orion Onboarding</h1>
+                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">White Label Configurator</p>
+                                </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="flex gap-2 mb-10">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= step ? 'bg-sa-gold' : 'bg-slate-100'}`}></div>
+                                ))}
+                            </div>
+
+                            {/* STEP 1: IDENTITY */}
+                            {step === 1 && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <h2 className="text-xl font-bold text-slate-800">Step 1: Brand Identity</h2>
+                                    <p className="text-sm text-slate-500">Configure how the AI App looks to guests. It should feel like *your* proprietary app.</p>
+                                    
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Hotel Name</label>
+                                        <input type="text" value={hotelData.name} onChange={(e) => updateField('name', e.target.value)} 
+                                            className="w-full p-3 border border-slate-200 rounded-lg font-bold text-sa-blue focus:ring-2 focus:ring-sa-blue outline-none" />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Primary Brand Color</label>
+                                        <div className="flex gap-4">
+                                            {['#c4261d', '#001d7a', '#eab308', '#007a4d', '#1e293b'].map(color => (
+                                                <button key={color} onClick={() => updateField('brandColor', color)}
+                                                    className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 ${hotelData.brandColor === color ? 'border-slate-800 scale-110' : 'border-transparent'}`}
+                                                    style={{ backgroundColor: color }}
+                                                >
+                                                    {hotelData.brandColor === color && <i className="ph-bold ph-check text-white"></i>}
+                                                </button>
+                                            ))}
+                                            <input type="color" value={hotelData.brandColor} onChange={(e) => updateField('brandColor', e.target.value)}
+                                                className="w-10 h-10 rounded-full cursor-pointer border-0 p-0 overflow-hidden" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Upload Logo</label>
+                                        <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:bg-slate-50 cursor-pointer transition-colors">
+                                            <i className="ph-duotone ph-image text-3xl text-slate-300 mb-2"></i>
+                                            <p className="text-sm text-slate-500">Drag & Drop or <span className="text-sa-blue font-bold">Browse</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 2: INTEGRATIONS */}
+                            {step === 2 && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <h2 className="text-xl font-bold text-slate-800">Step 2: Orion Connect</h2>
+                                    <p className="text-sm text-slate-500">Link the AI to your operational nervous system.</p>
+
+                                    {/* PMS */}
+                                    <div className="p-4 border border-slate-200 rounded-xl bg-slate-50">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <i className="ph-fill ph-bed text-sa-blue"></i>
+                                                <span className="font-bold text-sm">PMS Connector</span>
+                                            </div>
+                                            <select value={hotelData.pms} onChange={(e) => updateField('pms', e.target.value)}
+                                                className="text-xs bg-white border border-slate-200 rounded px-2 py-1 outline-none">
+                                                <option value="nightsbridge">Nightsbridge</option>
+                                                <option value="opera">Oracle Opera (Cloud)</option>
+                                                <option value="semper">Semper</option>
+                                            </select>
+                                        </div>
+                                        <input type="password" placeholder="API Key / Site ID" value={hotelData.pmsKey} onChange={(e) => updateField('pmsKey', e.target.value)}
+                                            className="w-full p-2 text-sm border border-slate-200 rounded bg-white outline-none" />
+                                    </div>
+
+                                    {/* PAYMENTS */}
+                                    <div className="p-4 border border-slate-200 rounded-xl bg-slate-50">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <i className="ph-fill ph-credit-card text-sa-blue"></i>
+                                                <span className="font-bold text-sm">Payments (Yoco)</span>
+                                            </div>
+                                            <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">Active</div>
+                                        </div>
+                                        <input type="text" placeholder="pk_live_..." value={hotelData.yocoKey} onChange={(e) => updateField('yocoKey', e.target.value)}
+                                            className="w-full p-2 text-sm border border-slate-200 rounded bg-white outline-none font-mono" />
+                                        <p className="text-[10px] text-slate-400 mt-2">Used for secure in-chat deposits and room service.</p>
+                                    </div>
+
+                                    {/* ESKOM */}
+                                    <div className="p-4 border border-slate-200 rounded-xl bg-slate-50">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <i className="ph-fill ph-lightning text-sa-gold"></i>
+                                                <span className="font-bold text-sm">Eskom Intelligence</span>
+                                            </div>
+                                        </div>
+                                        <input type="text" placeholder="Zone ID (e.g. Eskom-Direct-Kingsburgh)" value={hotelData.eskomZone} onChange={(e) => updateField('eskomZone', e.target.value)}
+                                            className="w-full p-2 text-sm border border-slate-200 rounded bg-white outline-none" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 3: CONTENT */}
+                            {step === 3 && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <h2 className="text-xl font-bold text-slate-800">Step 3: Knowledge Base</h2>
+                                    <p className="text-sm text-slate-500">Train the "Gemini Brain" on your specific property.</p>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">WiFi SSID</label>
+                                            <input type="text" value={hotelData.wifiSSID} onChange={(e) => updateField('wifiSSID', e.target.value)} 
+                                                className="w-full p-3 border border-slate-200 rounded-lg outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
+                                            <input type="text" value={hotelData.wifiPass} onChange={(e) => updateField('wifiPass', e.target.value)} 
+                                                className="w-full p-3 border border-slate-200 rounded-lg outline-none font-mono" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Ingest Menus & Policy (PDF)</label>
+                                        <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                            <div className="bg-slate-50 p-3 flex justify-between items-center border-b border-slate-200">
+                                                <span className="text-sm font-semibold">Restaurant_Menu_2026.pdf</span>
+                                                <span className="text-xs text-green-600 font-bold flex items-center gap-1"><i className="ph-bold ph-check"></i> Processed</span>
+                                            </div>
+                                            <div className="bg-slate-50 p-3 flex justify-between items-center border-b border-slate-200">
+                                                <span className="text-sm font-semibold">Spa_Price_List.pdf</span>
+                                                <span className="text-xs text-green-600 font-bold flex items-center gap-1"><i className="ph-bold ph-check"></i> Processed</span>
+                                            </div>
+                                            <div className="p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors">
+                                                <span className="text-sa-blue text-sm font-bold">+ Upload Document</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-2">Gemini 2.0 will extract prices and items automatically.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                             {/* STEP 4: DEPLOY */}
+                             {step === 4 && (
+                                <div className="space-y-6 animate-fade-in text-center py-10">
+                                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <i className="ph-fill ph-rocket-launch text-4xl text-sa-green"></i>
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-slate-800">Ready to Launch!</h2>
+                                    <p className="text-slate-500 max-w-sm mx-auto">
+                                        You are about to deploy a white-label instance for <strong className="text-slate-900">{hotelData.name}</strong>.
+                                    </p>
+                                    <div className="bg-slate-50 p-6 rounded-xl text-left max-w-sm mx-auto space-y-2 text-sm border border-slate-200">
+                                        <div className="flex justify-between"><span>Database:</span> <span className="font-mono font-bold">hotels/hotel_084</span></div>
+                                        <div className="flex justify-between"><span>PMS:</span> <span className="font-mono font-bold capitalize">{hotelData.pms}</span></div>
+                                        <div className="flex justify-between"><span>Eskom:</span> <span className="font-mono font-bold text-sa-gold">Active</span></div>
+                                        <div className="flex justify-between"><span>Languages:</span> <span className="font-mono font-bold">EN, ZU, XH, AF</span></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Buttons */}
+                            <div className="flex justify-between mt-12 pt-6 border-t border-slate-100">
+                                {step > 1 ? (
+                                    <button onClick={prevStep} className="px-6 py-3 rounded-lg font-bold text-slate-500 hover:bg-slate-100">Back</button>
+                                ) : <div></div>}
+                                
+                                {step < 4 ? (
+                                    <button onClick={nextStep} className="px-8 py-3 rounded-lg font-bold text-white bg-sa-blue hover:bg-blue-900 shadow-lg flex items-center gap-2">
+                                        Next Step <i className="ph-bold ph-arrow-right"></i>
+                                    </button>
+                                ) : (
+                                    <button onClick={() => alert("Deployment Script Triggered!")} className="px-8 py-3 rounded-lg font-bold text-white bg-sa-green hover:bg-green-700 shadow-lg flex items-center gap-2">
+                                        Deploy App <i className="ph-bold ph-check"></i>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* RIGHT PANEL: LIVE PREVIEW (THE AI CHAT DESIGN) */}
+                    <div className="w-full lg:w-1/2 bg-slate-200 flex items-center justify-center p-8 relative overflow-hidden">
+                        {/* Background Branding */}
+                        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 50%, ${hotelData.brandColor}, transparent 70%)` }}></div>
+                        
+                        <div className="flex flex-col items-center z-10">
+                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Live Guest App Preview</h3>
+                            
+                            <div className="phone-frame w-full max-w-xs">
+                                <div className="notch"></div>
+                                
+                                {/* APP UI */}
+                                <div className="h-full flex flex-col bg-slate-50">
+                                    {/* App Header */}
+                                    <div className="p-6 pt-12 text-white shadow-lg relative overflow-hidden" style={{ backgroundColor: hotelData.brandColor }}>
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                                        <div className="relative z-10">
+                                            <div className="text-xs opacity-80 uppercase tracking-widest mb-1">Welcome to</div>
+                                            <div className="text-2xl font-bold leading-tight">{hotelData.name}</div>
+                                        </div>
+                                        <div className="flex gap-4 mt-6 text-sm font-medium">
+                                            <div className="bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-1">
+                                                <i className="ph-fill ph-wifi"></i> <span>Connected</span>
+                                            </div>
+                                            <div className="bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-1">
+                                                <i className="ph-fill ph-lightning text-yellow-300"></i> <span>Stage 2</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Chat Area */}
+                                    <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+                                        {/* AI Message */}
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shadow-md shrink-0" style={{ backgroundColor: hotelData.brandColor }}>
+                                                <i className="ph-bold ph-sparkle"></i>
+                                            </div>
+                                            <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 border border-slate-100">
+                                                <p className="mb-2">Sawubona! Welcome to <strong>{hotelData.name}</strong>.</p>
+                                                <p>I can help you with room service, pool hours, or booking a spa treatment. What do you need?</p>
+                                                
+                                                {/* Simulated Audio Player */}
+                                                <div className="mt-3 bg-slate-100 rounded-full p-2 flex items-center gap-3 w-full max-w-[180px]">
+                                                    <div className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center">
+                                                        <i className="ph-fill ph-play text-xs text-slate-900"></i>
+                                                    </div>
+                                                    <div className="h-1 flex-1 bg-slate-300 rounded-full overflow-hidden">
+                                                        <div className="h-full w-1/3 bg-slate-500"></div>
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-500 font-bold">ZU</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Guest Message */}
+                                        <div className="flex justify-end">
+                                            <div className="bg-slate-800 text-white p-3 rounded-2xl rounded-tr-none shadow-sm text-sm">
+                                                Can I get the WiFi password?
+                                            </div>
+                                        </div>
+
+                                        {/* AI Response with Data */}
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shadow-md shrink-0" style={{ backgroundColor: hotelData.brandColor }}>
+                                                <i className="ph-bold ph-sparkle"></i>
+                                            </div>
+                                            <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 border border-slate-100">
+                                                <p>Certainly. You are connected to <strong>{hotelData.wifiSSID}</strong>.</p>
+                                                <div className="mt-2 bg-slate-50 border border-slate-200 p-2 rounded flex justify-between items-center">
+                                                    <code className="font-mono font-bold text-sa-blue">{hotelData.wifiPass}</code>
+                                                    <i className="ph-bold ph-copy text-slate-400"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Input Area */}
+                                    <div className="p-3 bg-white border-t border-slate-100">
+                                        <div className="flex gap-2">
+                                            <button className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                                <i className="ph-bold ph-microphone"></i>
+                                            </button>
+                                            <div className="flex-1 bg-slate-100 rounded-full flex items-center px-4 text-sm text-slate-400">
+                                                Ask anything...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
