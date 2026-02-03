@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion | Mission Control</title>
+    
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Quicksand', 'sans-serif'] },
+                    colors: {
+                        sa: {
+                            blue: '#001d7a',
+                            red: '#c4261d',
+                            gold: '#eab308',
+                            green: '#007a4d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; }
+        .kanban-col { min-height: 70vh; }
+        .ticket-card { transition: all 0.2s; border-left: 4px solid transparent; }
+        .ticket-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .priority-high { border-left-color: #c4261d; }
+        .priority-med { border-left-color: #eab308; }
+        .priority-low { border-left-color: #007a4d; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen overflow-hidden flex flex-col">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const App = () => {
+            // --- MOCK DATA ---
+            const [tickets, setTickets] = useState([
+                { id: 'T-101', room: '302', dept: 'hk', type: 'Towels', status: 'new', time: '10:02', priority: 'low', lang: 'zu' },
+                { id: 'T-102', room: '105', dept: 'maint', type: 'AC Leaking', status: 'new', time: '09:45', priority: 'high', lang: 'en' },
+                { id: 'T-103', room: '201', dept: 'fnb', type: 'Burger Order', status: 'processing', time: '10:15', priority: 'med', lang: 'af' },
+                { id: 'T-104', room: '404', dept: 'hk', type: 'Turndown', status: 'done', time: '08:00', priority: 'low', lang: 'en' },
+            ]);
+
+            const [eskomStatus, setEskomStatus] = useState({ stage: 2, next: "18:00", active: true });
+
+            // Stats
+            const stats = {
+                activeGuests: 84,
+                openTickets: tickets.filter(t => t.status !== 'done').length,
+                revenueToday: 4500
+            };
+
+            const moveTicket = (id, newStatus) => {
+                setTickets(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+            };
+
+            return (
+                <div className="flex h-screen">
+                    
+                    {/* SIDEBAR */}
+                    <div className="w-64 bg-sa-blue text-white flex flex-col justify-between p-4 shadow-xl z-20">
+                        <div>
+                            <div className="flex items-center gap-2 mb-8 px-2">
+                                <i className="ph-bold ph-star-four text-sa-gold text-2xl"></i>
+                                <span className="text-xl font-bold tracking-tight">ORION<span className="font-light opacity-70">CTRL</span></span>
+                            </div>
+                            
+                            <nav className="space-y-2">
+                                <NavItem icon="ph-squares-four" text="Dashboard" active />
+                                <NavItem icon="ph-chats-circle" text="Live Chats" />
+                                <NavItem icon="ph-users" text="Guests" />
+                                <NavItem icon="ph-chart-line-up" text="Analytics" />
+                                <NavItem icon="ph-gear" text="Settings" />
+                            </nav>
+                        </div>
+
+                        {/* POPI Compliance Badge */}
+                        <div className="bg-white/10 rounded-lg p-3 text-xs">
+                            <div className="flex items-center gap-2 font-bold text-green-400 mb-1">
+                                <i className="ph-fill ph-shield-check"></i> POPI Compliant
+                            </div>
+                            <p className="opacity-60 leading-tight">Guest chats auto-delete in 48h. No PII stored.</p>
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        
+                        {/* TOP BAR */}
+                        <div className="bg-white border-b border-slate-200 p-4 flex justify-between items-center shadow-sm z-10">
+                            <div className="flex items-center gap-6">
+                                <h2 className="text-xl font-bold text-slate-800">Mission Control</h2>
+                                
+                                {/* ESKOM WIDGET */}
+                                <div className="flex items-center gap-3 bg-slate-900 text-white px-4 py-1.5 rounded-full text-sm shadow-md">
+                                    <div className="flex items-center gap-1.5 font-bold text-yellow-400">
+                                        <i className="ph-fill ph-lightning animate-pulse"></i>
+                                        Stage {eskomStatus.stage}
+                                    </div>
+                                    <div className="h-4 w-px bg-white/20"></div>
+                                    <span className="text-xs text-slate-300">Generator: <span className="text-green-400 font-bold">ONLINE</span></span>
+                                    <span className="text-xs text-slate-400 ml-2">Next: {eskomStatus.next}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <div className="text-xs text-slate-400 font-bold uppercase">Revenue Today</div>
+                                    <div className="text-lg font-bold text-sa-green">R {stats.revenueToday}</div>
+                                </div>
+                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sa-blue font-bold border border-slate-200">
+                                    JD
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* KANBAN BOARD */}
+                        <div className="flex-1 overflow-x-auto p-6 bg-slate-100">
+                            <div className="flex gap-6 h-full">
+                                
+                                {/* COLUMN: NEW REQUESTS */}
+                                <div className="w-1/3 flex flex-col">
+                                    <div className="flex justify-between items-center mb-4 px-2">
+                                        <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-red-500"></div> New Requests
+                                        </h3>
+                                        <span className="bg-white text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold border border-slate-200">
+                                            {tickets.filter(t => t.status === 'new').length}
+                                        </span>
+                                    </div>
+                                    <div className="kanban-col space-y-3 overflow-y-auto pr-2 pb-10">
+                                        {tickets.filter(t => t.status === 'new').map(ticket => (
+                                            <TicketCard key={ticket.id} ticket={ticket} onMove={() => moveTicket(ticket.id, 'processing')} />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* COLUMN: IN PROGRESS */}
+                                <div className="w-1/3 flex flex-col">
+                                    <div className="flex justify-between items-center mb-4 px-2">
+                                        <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div> Processing
+                                        </h3>
+                                        <span className="bg-white text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold border border-slate-200">
+                                            {tickets.filter(t => t.status === 'processing').length}
+                                        </span>
+                                    </div>
+                                    <div className="kanban-col space-y-3 overflow-y-auto pr-2 pb-10">
+                                        {tickets.filter(t => t.status === 'processing').map(ticket => (
+                                            <TicketCard key={ticket.id} ticket={ticket} onMove={() => moveTicket(ticket.id, 'done')} btnText="Complete" />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* COLUMN: COMPLETED */}
+                                <div className="w-1/3 flex flex-col">
+                                    <div className="flex justify-between items-center mb-4 px-2">
+                                        <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-green-500"></div> Completed
+                                        </h3>
+                                        <span className="bg-white text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold border border-slate-200">
+                                            {tickets.filter(t => t.status === 'done').length}
+                                        </span>
+                                    </div>
+                                    <div className="kanban-col space-y-3 overflow-y-auto pr-2 pb-10">
+                                        {tickets.filter(t => t.status === 'done').map(ticket => (
+                                            <div key={ticket.id} className="opacity-60 grayscale hover:grayscale-0 transition-all">
+                                                <TicketCard ticket={ticket} readonly />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const NavItem = ({ icon, text, active }) => (
+            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${active ? 'bg-white/10 text-white font-bold' : 'text-blue-200 hover:bg-white/5 hover:text-white'}`}>
+                <i className={`ph-bold ${icon} text-lg`}></i>
+                <span className="text-sm">{text}</span>
+            </div>
+        );
+
+        const TicketCard = ({ ticket, onMove, btnText = "Accept", readonly }) => {
+            const priorityClass = ticket.priority === 'high' ? 'priority-high' : ticket.priority === 'med' ? 'priority-med' : 'priority-low';
+            
+            const deptLabels = { hk: 'Housekeeping', maint: 'Maintenance', fnb: 'F&B', res: 'Reservations' };
+            const deptColors = { hk: 'bg-purple-100 text-purple-700', maint: 'bg-orange-100 text-orange-700', fnb: 'bg-blue-100 text-blue-700', res: 'bg-teal-100 text-teal-700' };
+
+            return (
+                <div className={`ticket-card bg-white p-4 rounded-xl shadow-sm border border-slate-100 ${priorityClass}`}>
+                    <div className="flex justify-between items-start mb-2">
+                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${deptColors[ticket.dept]}`}>
+                            {deptLabels[ticket.dept]}
+                        </div>
+                        <span className="text-xs text-slate-400 font-mono">{ticket.time}</span>
+                    </div>
+                    
+                    <h4 className="font-bold text-slate-800 text-lg mb-1">{ticket.type}</h4>
+                    
+                    <div className="flex items-center gap-2 mb-3">
+                        <i className="ph-bold ph-door text-slate-400"></i>
+                        <span className="text-sm font-semibold text-slate-600">Room {ticket.room}</span>
+                        {ticket.lang !== 'en' && (
+                            <span className="ml-auto text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 uppercase">
+                                <i className="ph-fill ph-translate"></i> {ticket.lang}
+                            </span>
+                        )}
+                    </div>
+
+                    {!readonly && (
+                        <button onClick={onMove} className="w-full py-2 bg-slate-50 hover:bg-sa-blue hover:text-white text-slate-600 text-xs font-bold rounded-lg border border-slate-200 transition-colors flex items-center justify-center gap-2">
+                            {btnText} <i className="ph-bold ph-arrow-right"></i>
+                        </button>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
