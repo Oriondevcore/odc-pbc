@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAR Hotel Digital Concierge | Interactive Briefing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6; /* Warm neutral light gray */
+            color: #1F2937;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 300px;
+            max-height: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item.active {
+            background-color: #2563EB; /* Royal Blue */
+            color: white;
+            border-bottom: 2px solid #1E40AF;
+        }
+
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
+        
+        /* Process Flow Arrows without SVG */
+        .arrow-right::after {
+            content: "→";
+            font-size: 24px;
+            color: #9CA3AF;
+            margin: 0 10px;
+        }
+        @media (max-width: 768px) {
+            .arrow-right::after {
+                content: "↓";
+                display: block;
+                transform: rotate(0deg);
+                margin: 10px auto;
+            }
+        }
+    </style>
+    <!-- Chosen Palette: Professional Tech Blue - Warm Neutrals (#F3F4F6) background, Royal Blue (#2563EB) primary, Teal (#14B8A6) accents. -->
+    <!-- Application Structure Plan: The SPA is designed as a "Digital Pitchbook" with a top-level tab navigation structure. This divides the dense source report into three logical consumption areas: 1) 'The Solution' (Technical specs, Guest experience, Architecture), 2) 'Operations' (Dashboard, Routing, Security), and 3) 'Financial Model' (Pricing Calculator, Unit Economics). This structure allows the user to explore the product features before diving into the business viability, mimicking a sales or investor presentation flow. -->
+    <!-- Visualization & Content Choices: 
+         1. Architecture Flow: Structured HTML Flexbox diagram. Goal: Organize. Justification: Clearly shows the linear data path from Guest -> AI -> Action Tags -> Discord without complex graphics.
+         2. Language Comparison: Bar Chart (Chart.js). Goal: Compare. Justification: Highlights the massive advantage of AI (18 langs) vs Human staff (2 langs).
+         3. Latency Reduction: Horizontal Bar Chart (Chart.js). Goal: Change/Performance. Justification: Visualizes the 90% speed improvement from caching.
+         4. Pricing Calculator: Custom JS Interaction. Goal: Inform/Explore. Justification: Allows the user to 'build their burger' and see real-time cost implications, directly engaging with the pricing model.
+         5. Unit Economics: Doughnut Chart (Chart.js). Goal: Inform. Justification: Shows the healthy profit margin per unit to potential investors/owners.
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-blue-600 tracking-tight">ZAR Concierge</span>
+                    <span class="ml-3 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">v17.0 Prod</span>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <button onclick="switchTab('solution')" id="nav-solution" class="nav-item active px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">The Solution</button>
+                    <button onclick="switchTab('operations')" id="nav-operations" class="nav-item px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">Operations</button>
+                    <button onclick="switchTab('financials')" id="nav-financials" class="nav-item px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">Financial Model</button>
+                </nav>
+                <!-- Mobile menu button placeholder -->
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-900 focus:outline-none">
+                        <span class="text-2xl">≡</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
+            <button onclick="switchTab('solution')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">The Solution</button>
+            <button onclick="switchTab('operations')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Operations</button>
+            <button onclick="switchTab('financials')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Financial Model</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- TAB 1: THE SOLUTION -->
+        <div id="tab-solution" class="tab-content block animate-fade-in">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+                    The Central Nervous System
+                </h1>
+                <p class="mt-5 max-w-xl mx-auto text-xl text-gray-500">
+                    Replacing static room phones with a hyper-intelligent, voice-first AI assistant powered by Google Gemini 2.0 Flash.
+                </p>
+            </div>
+
+            <!-- Tech Stack & Architecture Flow -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-12">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Serverless "Headless" Architecture</h2>
+                    <p class="mt-2 text-gray-600">
+                        A breakdown of how ZAR processes requests without a dedicated server, ensuring zero downtime and minimal costs.
+                    </p>
+                </div>
+                
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-center">
+                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 w-full md:w-1/5 hover:shadow-md transition-shadow">
+                        <div class="text-3xl mb-2">👤</div>
+                        <h3 class="font-bold text-gray-800">Guest</h3>
+                        <p class="text-xs text-gray-500">PWA / Voice Input</p>
+                    </div>
+                    <div class="arrow-right hidden md:block"></div>
+                    
+                    <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-100 w-full md:w-1/5 hover:shadow-md transition-shadow relative">
+                        <div class="absolute -top-3 -right-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">Gemini 2.0</div>
+                        <div class="text-3xl mb-2">🧠</div>
+                        <h3 class="font-bold text-gray-800">AI Brain</h3>
+                        <p class="text-xs text-gray-500">Context & Intent</p>
+                    </div>
+                    <div class="arrow-right hidden md:block"></div>
+
+                    <div class="p-4 bg-purple-50 rounded-lg border border-purple-100 w-full md:w-1/5 hover:shadow-md transition-shadow">
+                        <div class="text-3xl mb-2">🏷️</div>
+                        <h3 class="font-bold text-gray-800">Action Tags</h3>
+                        <p class="text-xs text-gray-500">||HK|Room|Item||</p>
+                    </div>
+                    <div class="arrow-right hidden md:block"></div>
+
+                    <div class="p-4 bg-green-50 rounded-lg border border-green-100 w-full md:w-1/5 hover:shadow-md transition-shadow">
+                        <div class="text-3xl mb-2">🔔</div>
+                        <h3 class="font-bold text-gray-800">Discord</h3>
+                        <p class="text-xs text-gray-500">Staff Notification</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance & Languages Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Language Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Hyper-Linguistic Support</h3>
+                    <p class="text-sm text-gray-500 mb-6">
+                        ZAR natively speaks 18 languages, including all 11 official South African languages, bridging the gap between international guests and local staff.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="languageChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Latency Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Performance Optimization</h3>
+                    <p class="text-sm text-gray-500 mb-6">
+                        Using aggressive caching mechanisms (CacheService), the system reduces read latency for the Hotel Knowledge Base by 90%.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: OPERATIONS -->
+        <div id="tab-operations" class="tab-content hidden animate-fade-in">
+             <div class="text-center mb-12">
+                <h1 class="text-4xl font-extrabold text-gray-900">
+                    Mission Control Dashboard
+                </h1>
+                <p class="mt-5 max-w-xl mx-auto text-xl text-gray-500">
+                    Autonomously routing tickets to Housekeeping, Maintenance, and Dining while providing managers with real-time oversight.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Dashboard Features List -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-teal-500">
+                        <h3 class="font-bold text-lg text-gray-900">Live Ticketing</h3>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Tickets are color-coded (Red/Urgent, Orange/Open, Green/Completed). Status updates are a single click away.
+                        </p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+                        <h3 class="font-bold text-lg text-gray-900">AI Response Assistant</h3>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Managers can draft professional responses to difficult guest complaints instantly, with options for SMS or verbal scripts.
+                        </p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
+                        <h3 class="font-bold text-lg text-gray-900">Emergency Red Mode</h3>
+                        <p class="text-sm text-gray-600 mt-2">
+                            A dedicated "Panic Button" bypasses all queues, capturing critical details (Name, Room, Nature) and alerting Security immediately.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Routing Visualization -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Autonomous Ticket Routing</h3>
+                    <p class="text-sm text-gray-500 mb-6">
+                        The AI analyzes intent to route requests to the specific department channel on Discord.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="routingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Section -->
+             <div class="mt-12 bg-gray-800 rounded-xl shadow-lg p-8 text-white">
+                <h2 class="text-2xl font-bold mb-6">Security & Privacy Protocol</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">🔒</div>
+                        <h4 class="font-bold text-lg">No PII Storage</h4>
+                        <p class="text-gray-400 text-sm mt-2">Conversation context is processed ephemerally. No permanent record of sensitive guest chatter.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">💳</div>
+                        <h4 class="font-bold text-lg">Payment Isolation</h4>
+                        <p class="text-gray-400 text-sm mt-2">The AI never requests credit card details, redirecting to secure gateways like Nightsbridge.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">👥</div>
+                        <h4 class="font-bold text-lg">Role-Based Data</h4>
+                        <p class="text-gray-400 text-sm mt-2">Housekeeping staff see only cleaning requests, keeping guest reservation data private.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: FINANCIAL MODEL -->
+        <div id="tab-financials" class="tab-content hidden animate-fade-in">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-extrabold text-gray-900">
+                    "Build-Your-Burger" Pricing
+                </h1>
+                <p class="mt-5 max-w-xl mx-auto text-xl text-gray-500">
+                    A flexible pricing model where hotels pay for value. Start with the base and scale with features.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Interactive Calculator -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <span class="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3">💰</span> 
+                        Live Pricing Estimator
+                    </h3>
+
+                    <!-- Room Slider -->
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-medium text-gray-700">Property Size (Rooms)</label>
+                            <span id="room-display" class="text-2xl font-bold text-blue-600">18</span>
+                        </div>
+                        <input type="range" id="room-slider" min="1" max="150" value="18" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        <p class="text-xs text-gray-500 mt-2">First 18 rooms included in base price. Sliding scale applies thereafter.</p>
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="space-y-4 mb-8">
+                        <!-- Multi-Language -->
+                        <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Multi-Language Pack</h4>
+                                <p class="text-xs text-gray-500">18 Languages + Context</p>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-bold text-gray-700 mr-3">+R500/mo</span>
+                                <input type="checkbox" id="check-lang" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" onchange="calculatePrice()">
+                            </div>
+                        </div>
+
+                        <!-- Dashboard -->
+                        <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Manager Dashboard</h4>
+                                <p class="text-xs text-gray-500">Live Ticketing & Routing</p>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-bold text-gray-700 mr-3">+R750/mo</span>
+                                <input type="checkbox" id="check-dash" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" onchange="calculatePrice()">
+                            </div>
+                        </div>
+
+                        <!-- AI Tools -->
+                        <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition">
+                            <div>
+                                <h4 class="font-medium text-gray-900">AI Manager Tools</h4>
+                                <p class="text-xs text-gray-500">Analytics & Response Drafter</p>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-bold text-gray-700 mr-3">+R1,250/mo</span>
+                                <input type="checkbox" id="check-ai" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" onchange="calculatePrice()">
+                            </div>
+                        </div>
+                        
+                         <!-- WhatsApp -->
+                         <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition border-green-200 bg-green-50">
+                            <div>
+                                <h4 class="font-medium text-gray-900">WhatsApp Integration</h4>
+                                <p class="text-xs text-gray-500">Pre-arrival chat (Meta Fees apply)</p>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-bold text-gray-700 mr-3">+R450/mo</span>
+                                <input type="checkbox" id="check-whatsapp" class="w-5 h-5 text-green-600 rounded focus:ring-green-500" onchange="calculatePrice()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Output -->
+                    <div class="bg-gray-900 text-white rounded-xl p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-400 text-sm">Estimated Monthly Subscription</p>
+                            <h2 id="total-price" class="text-3xl font-bold">R999</h2>
+                        </div>
+                        <div class="text-right">
+                             <p class="text-gray-400 text-sm">One-Time Setup</p>
+                             <h3 id="setup-price" class="text-xl font-bold">R4,999</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unit Economics -->
+                <div class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Unit Economics</h3>
+                    <p class="text-sm text-gray-500 mb-6">
+                        Estimated profit contribution per unit based on serverless architecture (low OPEX).
+                    </p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="economicsChart"></canvas>
+                    </div>
+                    <div class="mt-4 space-y-2 text-sm">
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-gray-600">Avg Cost to Serve</span>
+                            <span class="font-bold">~R300</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-gray-600">Base Revenue</span>
+                            <span class="font-bold">R999</span>
+                        </div>
+                        <div class="flex justify-between pt-2">
+                            <span class="text-green-600 font-bold">Margin</span>
+                            <span class="font-bold text-green-600">~70%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-sm text-gray-500">
+                &copy; 2026 OrionDevCore. All rights reserved. ZAR Digital Concierge System v17.0.
+            </p>
+        </div>
+    </footer>
+
+    <!-- LOGIC -->
+    <script>
+        // --- Navigation Logic ---
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            // Show selected tab
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).classList.add('block');
+
+            // Update Nav States
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('nav-' + tabId).classList.add('active');
+
+            // Close mobile menu if open
+            document.getElementById('mobile-menu').classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        // --- Chart.js Configuration ---
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        
+        // Helper: Wrap labels
+        function wrapLabel(label) {
+            if (label.length <= 16) return label;
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                if ((currentLine + " " + words[i]).length <= 16) {
+                    currentLine += " " + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        const tooltipConfig = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    return Array.isArray(label) ? label.join(' ') : label;
+                }
+            }
+        };
+
+        // 1. Language Chart
+        const ctxLang = document.getElementById('languageChart').getContext('2d');
+        new Chart(ctxLang, {
+            type: 'bar',
+            data: {
+                labels: wrapLabel('ZAR Digital Concierge (Official SA + Intnl)'),
+                datasets: [
+                    {
+                        label: 'Languages Supported',
+                        data: [18],
+                        backgroundColor: '#2563EB',
+                        base: 0,
+                        barThickness: 40
+                    },
+                    {
+                        label: 'Typical Human Staff',
+                        data: [2],
+                        backgroundColor: '#94A3B8',
+                        base: 0,
+                        barThickness: 40
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: tooltipConfig
+                },
+                scales: {
+                    x: {
+                        type: 'category',
+                        labels: [wrapLabel('ZAR Digital Concierge'), wrapLabel('Typical Human Staff')]
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Count' }
+                    }
+                }
+            }
+        });
+
+        // 2. Latency Chart
+        const ctxLat = document.getElementById('latencyChart').getContext('2d');
+        new Chart(ctxLat, {
+            type: 'bar',
+            data: {
+                labels: ['Standard DB Query', 'ZAR Cached Response'],
+                datasets: [{
+                    label: 'Latency (ms)',
+                    data: [2500, 200],
+                    backgroundColor: ['#CBD5E1', '#10B981'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: tooltipConfig
+                }
+            }
+        });
+
+        // 3. Routing Chart (Pie)
+        const ctxRoute = document.getElementById('routingChart').getContext('2d');
+        new Chart(ctxRoute, {
+            type: 'doughnut',
+            data: {
+                labels: ['Housekeeping', 'Dining', 'Maintenance', 'Front Desk', 'Concierge'],
+                datasets: [{
+                    data: [35, 25, 15, 15, 10],
+                    backgroundColor: ['#3B82F6', '#14B8A6', '#F59E0B', '#6366F1', '#EC4899'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: { position: 'right' },
+                    tooltip: tooltipConfig
+                }
+            }
+        });
+
+        // 4. Economics Chart
+        const ctxEco = document.getElementById('economicsChart').getContext('2d');
+        new Chart(ctxEco, {
+            type: 'pie',
+            data: {
+                labels: ['Operational Cost', 'Profit Margin'],
+                datasets: [{
+                    data: [300, 699],
+                    backgroundColor: ['#EF4444', '#10B981'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: tooltipConfig,
+                    title: { display: true, text: 'Base Subscription Split' }
+                }
+            }
+        });
+
+        // --- Pricing Calculator Logic ---
+        const slider = document.getElementById('room-slider');
+        const display = document.getElementById('room-display');
+
+        slider.oninput = function() {
+            display.innerHTML = this.value;
+            calculatePrice();
+        }
+
+        function calculatePrice() {
+            let rooms = parseInt(slider.value);
+            let monthly = 999;
+            let setup = 4999;
+
+            // Room Scaling
+            if (rooms > 18) {
+                let extra = rooms - 18;
+                // Tier 1: Rooms 19-50 (32 max)
+                let t1 = Math.min(extra, 32);
+                monthly += t1 * 45;
+                extra -= t1;
+
+                if (extra > 0) {
+                    // Tier 2: Rooms 51-100 (50 max)
+                    let t2 = Math.min(extra, 50);
+                    monthly += t2 * 35;
+                    extra -= t2;
+                }
+
+                if (extra > 0) {
+                    // Tier 3: 101+
+                    monthly += extra * 25;
+                }
+            }
+
+            // Add-ons
+            if (document.getElementById('check-lang').checked) { monthly += 500; setup += 2500; }
+            if (document.getElementById('check-dash').checked) { monthly += 750; setup += 3500; }
+            if (document.getElementById('check-ai').checked) { monthly += 1250; setup += 5000; }
+            if (document.getElementById('check-whatsapp').checked) { monthly += 450; setup += 3500; }
+
+            // Format Output
+            document.getElementById('total-price').innerText = "R" + monthly.toLocaleString();
+            document.getElementById('setup-price').innerText = "R" + setup.toLocaleString();
+        }
+    </script>
+</body>
+</html>
