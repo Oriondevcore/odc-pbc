@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orion Commercial Architect</title>
+    
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #e2e8f0; color: #0f172a; -webkit-font-smoothing: antialiased; }
+        
+        /* Responsive Paper Sheet */
+        .paper-sheet {
+            background: white;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        @media (min-width: 768px) {
+            .paper-sheet {
+                max-width: 210mm;
+                min-height: 297mm;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+        }
+
+        /* Form Elements */
+        .input-field {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        .input-field:focus {
+            border-color: #2563eb;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Signature Pad */
+        canvas.sig-pad {
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            border-radius: 8px;
+            cursor: crosshair;
+            touch-action: none;
+            width: 100%;
+        }
+
+        /* Print Specifics */
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .paper-sheet { box-shadow: none; margin: 0; width: 100%; max-width: none; padding: 0; }
+            .no-print { display: none !important; }
+            /* Force desktop grid layout for print */
+            .print-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem; }
+            .print-col-7 { grid-column: span 7 / span 12; }
+            .print-col-5 { grid-column: span 5 / span 12; }
+            .print-w-half { width: 50%; margin-left: auto; }
+        }
+    </style>
+</head>
+<body class="bg-slate-200 md:py-8 min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const App = () => {
+            // --- STATE ---
+            const [client, setClient] = useState({ name: '', manager: '', email: '' });
+            const [property, setProperty] = useState({ rooms: 20, stars: 3 });
+
+            const [modules, setModules] = useState({
+                core: true, 
+                missionControl: false,
+                linguist: false,
+                managerTools: false
+            });
+
+            const [revenueCenters, setRevenueCenters] = useState({
+                restaurant: { count: 0, price: 3500, label: "Restaurant" },
+                bar: { count: 0, price: 2500, label: "Bar / Lounge" },
+                coffee: { count: 0, price: 2000, label: "Coffee Shop" },
+                spa: { count: 0, price: 3000, label: "Spa & Wellness" },
+                conference: { count: 0, price: 4500, label: "Conference Hall" }
+            });
+
+            const [totals, setTotals] = useState({ monthly: 0, setup: 0 });
+            
+            // Signature
+            const canvasRef = useRef(null);
+            const [isDrawing, setIsDrawing] = useState(false);
+            const [hasSignature, setHasSignature] = useState(false);
+
+            // --- PRICING LOGIC ---
+            const COSTS = {
+                core: { monthly: 999, setup: 4999 },
+                missionControl: { monthly: 750, setup: 3500 },
+                linguist: { monthly: 500, setup: 2500 },
+                managerTools: { monthly: 1250, setup: 5000 }
+            };
+
+            useEffect(() => {
+                let monthly = COSTS.core.monthly;
+                let setup = COSTS.core.setup;
+
+                if (modules.missionControl) { monthly += COSTS.missionControl.monthly; setup += COSTS.missionControl.setup; }
+                if (modules.linguist) { monthly += COSTS.linguist.monthly; setup += COSTS.linguist.setup; }
+                if (modules.managerTools) { monthly += COSTS.managerTools.monthly; setup += COSTS.managerTools.setup; }
+
+                Object.values(revenueCenters).forEach(center => {
+                    monthly += (center.count * center.price);
+                    if (center.count > 0) setup += (center.count * 1500); 
+                });
+
+                if (property.rooms > 20) {
+                    monthly += ((property.rooms - 20) * 45);
+                }
+
+                let multiplier = 1;
+                if (property.stars === 4) multiplier = 1.15;
+                if (property.stars === 5) multiplier = 1.35;
+
+                monthly = Math.round(monthly * multiplier);
+
+                setTotals({ monthly, setup });
+
+            }, [modules, revenueCenters, property]);
+
+            // --- HANDLERS ---
+            const toggleModule = (key) => {
+                if (key === 'core') return;
+                setModules(prev => ({ ...prev, [key]: !prev[key] }));
+            };
+
+            const updateCenter = (key, delta) => {
+                setRevenueCenters(prev => {
+                    const newCount = Math.max(0, prev[key].count + delta);
+                    return { ...prev, [key]: { ...prev[key], count: newCount } };
+                });
+            };
+
+            const formatCurrency = (val) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(val);
+
+            // --- DRAWING ---
+            const getCoords = (e) => {
+                const rect = canvasRef.current.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            };
+
+            const startDrawing = (e) => {
+                setIsDrawing(true);
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+                const { x, y } = getCoords(e);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                // e.preventDefault(); // Commented out to allow scrolling if not hitting canvas, but typically needed for canvas
+                const { x, y } = getCoords(e);
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                setHasSignature(true);
+            };
+
+            const stopDrawing = () => setIsDrawing(false);
+            const clearSignature = () => {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                setHasSignature(false);
+            };
+
+            const generatePDF = () => {
+                if (!client.name) return alert("Please enter the Client Name.");
+                window.scrollTo(0, 0); // Reset scroll for cleaner capture
+                
+                const element = document.getElementById('proposal-content');
+                const opt = {
+                    margin: 0,
+                    filename: `Orion_Proposal_${client.name.replace(/\s+/g, '_')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                document.body.classList.add('printing');
+                document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+                
+                html2pdf().set(opt).from(element).save().then(() => {
+                    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'block'); // restore might need flex/grid specific
+                    document.body.classList.remove('printing');
+                    window.location.reload(); 
+                });
+            };
+
+            return (
+                <div className="flex justify-center w-full">
+                    <div id="proposal-content" className="paper-sheet p-6 md:p-12 flex flex-col text-slate-800">
+                        
+                        {/* HEADER */}
+                        <div className="flex flex-col md:flex-row justify-between items-start border-b border-slate-200 pb-6 mb-8 gap-4">
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Commercial Proposal</h1>
+                                <p className="text-xs md:text-sm text-slate-500 uppercase tracking-wider mt-1 font-medium">Enterprise Solution Architect</p>
+                            </div>
+                            <div className="text-left md:text-right">
+                                <div className="text-lg md:text-xl font-bold text-blue-600">ORION<span className="text-slate-900">DEV</span>CORE</div>
+                                <div className="text-xs text-slate-400 mt-1">Ref: {new Date().getFullYear()}-001</div>
+                                <div className="text-xs text-slate-400">{new Date().toLocaleDateString()}</div>
+                            </div>
+                        </div>
+
+                        {/* CLIENT GRID */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mb-10 print-grid-2">
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wide">Client Details</h3>
+                                <div className="space-y-3">
+                                    <input type="text" placeholder="Business / Hotel Name" className="input-field font-semibold text-slate-900"
+                                        value={client.name} onChange={e => setClient({...client, name: e.target.value})} />
+                                    <input type="text" placeholder="Authorized Manager" className="input-field"
+                                        value={client.manager} onChange={e => setClient({...client, manager: e.target.value})} />
+                                    <input type="email" placeholder="Email Address" className="input-field"
+                                        value={client.email} onChange={e => setClient({...client, email: e.target.value})} />
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 tracking-wide">Property Configuration</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Room Count</label>
+                                        <input type="number" value={property.rooms} onChange={e => setProperty({...property, rooms: parseInt(e.target.value) || 0})}
+                                            className="input-field text-right font-mono" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Star Rating</label>
+                                        <select value={property.stars} onChange={e => setProperty({...property, stars: parseInt(e.target.value)})}
+                                            className="input-field text-right cursor-pointer">
+                                            <option value={3}>3 Star</option>
+                                            <option value={4}>4 Star</option>
+                                            <option value={5}>5 Star</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* MAIN CONTENT GRID */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8 print-grid-2">
+                            
+                            {/* LEFT: SOFTWARE MODULES */}
+                            <div className="col-span-1 lg:col-span-7 print-col-7">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-200 pb-2">Software Modules</h3>
+                                <div className="space-y-3">
+                                    
+                                    {/* Core */}
+                                    <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 opacity-75">
+                                        <div className="mt-1 w-5 h-5 flex items-center justify-center bg-blue-100 text-blue-600 rounded">
+                                            <i className="ph-bold ph-check text-xs"></i>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between flex-wrap">
+                                                <span className="text-sm font-bold text-slate-700">Core Platform</span>
+                                                <span className="text-sm font-mono text-slate-600">R 999</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-1">Guest AI Chat, Web App, Basic Routing</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Interactive Modules */}
+                                    {[
+                                        { id: 'missionControl', label: 'Mission Control', price: 750, desc: 'Manager Dashboard, Live Alerts' },
+                                        { id: 'linguist', label: 'Global Linguist', price: 500, desc: '18-Language Pack (Zulu/Xhosa)' },
+                                        { id: 'managerTools', label: 'AI Manager Tools', price: 1250, desc: 'Complaint Drafter, Planner' }
+                                    ].map(mod => (
+                                        <div key={mod.id} 
+                                            onClick={() => toggleModule(mod.id)}
+                                            className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer ${modules[mod.id] ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-blue-300'}`}>
+                                            <div className={`mt-1 w-5 h-5 flex items-center justify-center rounded border ${modules[mod.id] ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300'} no-print`}>
+                                                {modules[mod.id] && <i className="ph-bold ph-check text-xs"></i>}
+                                            </div>
+                                            {/* For Print Only Checkbox Visual */}
+                                            <div className="hidden print-block w-5 h-5 border border-slate-800 flex items-center justify-center">
+                                                {modules[mod.id] ? 'X' : ''}
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <div className="flex justify-between flex-wrap">
+                                                    <span className="text-sm font-bold text-slate-700">{mod.label}</span>
+                                                    <span className="text-sm font-mono text-slate-600">R {mod.price}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1">{mod.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* RIGHT: REVENUE CENTERS */}
+                            <div className="col-span-1 lg:col-span-5 print-col-5">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-200 pb-2">Revenue Centers</h3>
+                                <div className="space-y-3">
+                                    {Object.entries(revenueCenters).map(([key, data]) => (
+                                        <div key={key} className="flex items-center justify-between p-3 rounded border border-slate-100 bg-white shadow-sm">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-semibold text-slate-700">{data.label}</span>
+                                                <span className="text-[10px] text-slate-400 font-mono">+{formatCurrency(data.price)}/mo</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <button onClick={() => updateCenter(key, -1)}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 active:bg-slate-300 no-print">
+                                                    <i className="ph-bold ph-minus"></i>
+                                                </button>
+                                                <span className="w-4 text-center text-base font-bold text-slate-800">{data.count}</span>
+                                                <button onClick={() => updateCenter(key, 1)}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 active:bg-slate-300 no-print">
+                                                    <i className="ph-bold ph-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* TOTALS & SUMMARY */}
+                        <div className="flex flex-col md:flex-row justify-end mb-8 md:mb-12">
+                            <div className="w-full md:w-1/2 bg-slate-900 rounded-xl p-6 text-white shadow-xl print-w-half">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-slate-400 text-sm">Monthly Subscription</span>
+                                    <span className="font-bold font-mono text-lg">{formatCurrency(totals.monthly)}</span>
+                                </div>
+                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
+                                    <span className="text-slate-400 text-sm">Implementation (One-time)</span>
+                                    <span className="font-bold font-mono text-lg">{formatCurrency(totals.setup)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs uppercase font-bold tracking-widest text-blue-400">Total Due Now</span>
+                                    <span className="font-bold text-2xl tracking-tight">{formatCurrency(totals.monthly + totals.setup)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* SIGNATURE AREA */}
+                        <div className="mt-auto pt-6 border-t border-slate-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 print-grid-2">
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Terms of Acceptance</h4>
+                                    <p className="text-[10px] text-slate-500 leading-relaxed mb-4 text-justify">
+                                        By signing below, the Client accepts the configuration above. Binding contract for 12 months. Payment due upon system activation.
+                                    </p>
+                                    <div className="text-xs text-slate-900 font-bold">
+                                        Date: <span className="font-normal">{new Date().toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between items-end mb-2">
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase">Authorized Signature</h4>
+                                        <button onClick={clearSignature} className="text-[10px] text-red-500 hover:text-red-700 font-semibold no-print p-2">Clear</button>
+                                    </div>
+                                    <canvas 
+                                        ref={canvasRef}
+                                        width={350}
+                                        height={120}
+                                        className="sig-pad w-full"
+                                        onMouseDown={startDrawing}
+                                        onMouseMove={draw}
+                                        onMouseUp={stopDrawing}
+                                        onMouseLeave={stopDrawing}
+                                        onTouchStart={startDrawing}
+                                        onTouchMove={draw}
+                                        onTouchEnd={stopDrawing}
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-2 text-center no-print">Sign above (Touch Enabled)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* MOBILE FLOATING ACTION BUTTON */}
+                        <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 no-print z-50">
+                            <button 
+                                onClick={generatePDF}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-full shadow-2xl flex items-center gap-3 transition-transform active:scale-95"
+                            >
+                                <i className="ph-bold ph-file-pdf text-xl"></i>
+                                <span className="hidden md:inline">Generate PDF</span>
+                                <span className="md:hidden">Save PDF</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
