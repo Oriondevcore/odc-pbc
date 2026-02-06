@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORION Commercial Architect v14.0 (Production)</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://js.yoco.com/sdk/v1/yoco-sdk-web.js"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0f0505 0%, #1a0a0a 50%, #0B1221 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        
+        /* UI Components */
+        .price-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #8B2500 0%, #C15817 100%);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(139, 37, 0, 0.6);
+            z-index: 9999;
+            min-width: 280px;
+            border: 2px solid #FFB627;
+        }
+        
+        .input-field {
+            background: rgba(11, 13, 19, 0.6);
+            border: 1px solid rgba(193, 88, 23, 0.4);
+            color: #e8e1d5;
+            padding: 0.75rem;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .input-field:focus { outline: none; border-color: #FFB627; background: rgba(11, 13, 19, 0.9); box-shadow: 0 0 0 3px rgba(255, 182, 39, 0.1); }
+        input[type="checkbox"] { accent-color: #FFB627; width: 1.2rem; height: 1.2rem; }
+        
+        .label { font-size: 0.7rem; text-transform: uppercase; color: #C15817; font-weight: 700; margin-bottom: 0.4rem; display: block; letter-spacing: 0.1em; }
+        
+        .card { background: rgba(11, 13, 19, 0.8); border: 1px solid rgba(193, 88, 23, 0.3); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; }
+        
+        .btn { background: linear-gradient(135deg, #8B2500 0%, #C15817 100%); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; transition: all 0.3s; font-size: 0.95rem; text-transform: uppercase; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(139, 37, 0, 0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-outline { background: transparent; border: 1px solid #FFB627; color: #FFB627; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; text-transform: uppercase; transition: all 0.3s; }
+        .btn-outline:hover { background: rgba(255, 182, 39, 0.1); }
+        
+        .module-card { background: rgba(11, 13, 19, 0.4); border: 2px solid rgba(193, 88, 23, 0.3); padding: 1rem; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
+        .module-card:hover { border-color: rgba(255, 182, 39, 0.6); transform: translateY(-2px); }
+        .module-card.active { border-color: #FFB627; background: rgba(255, 182, 39, 0.1); }
+        
+        .progress-bar { height: 4px; background: rgba(193, 88, 23, 0.2); position: relative; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #8B2500 0%, #FFB627 100%); transition: width 0.5s ease; }
+
+        .currency-toggle { display: flex; gap: 4px; margin-bottom: 1rem; justify-content: flex-end; }
+        .currency-btn { padding: 4px 8px; font-size: 0.7rem; border-radius: 4px; cursor: pointer; border: 1px solid #C15817; background: transparent; color: #e0e0e0; }
+        .currency-btn.active { background: #C15817; color: white; font-weight: bold; }
+
+        .neon-green { box-shadow: 0 0 10px #10b981; border-color: #10b981; }
+        
+        /* Simulation Terminal */
+        .sim-terminal { font-family: 'JetBrains Mono', monospace; background: #000; color: #33ff33; padding: 1rem; border-radius: 6px; font-size: 0.75rem; border: 1px solid #333; margin-top: 1rem; box-shadow: 0 0 20px rgba(51, 255, 51, 0.1); }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        .rvc-config-panel { background: rgba(0,0,0,0.3); border-left: 2px solid #FFB627; padding: 1rem; margin-top: 0.5rem; margin-bottom: 1rem; }
+        
+        /* Signature Pad */
+        canvas.sig-pad { background: #fff; border-radius: 8px; cursor: crosshair; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const YOCO_KEY = 'pk_test_ed360be6q5e3784865d5';
+
+        // --- COMPONENT: Signature Pad ---
+        const SignaturePad = ({ onSave }) => {
+            const canvasRef = useRef(null);
+            const [isDrawing, setIsDrawing] = useState(false);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+            }, []);
+
+            const getPos = (e) => {
+                const rect = canvasRef.current.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                return { x, y };
+            };
+
+            const start = (e) => {
+                e.preventDefault(); // Prevent scrolling on touch
+                setIsDrawing(true);
+                const { x, y } = getPos(e);
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            };
+
+            const draw = (e) => {
+                e.preventDefault();
+                if (!isDrawing) return;
+                const { x, y } = getPos(e);
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            };
+
+            const end = () => {
+                setIsDrawing(false);
+                onSave(canvasRef.current.toDataURL());
+            };
+
+            const clear = () => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                onSave(null);
+            };
+
+            return (
+                <div>
+                    <canvas 
+                        ref={canvasRef} 
+                        width={500} 
+                        height={150} 
+                        className="sig-pad w-full"
+                        onMouseDown={start} onMouseMove={draw} onMouseUp={end} onMouseLeave={end}
+                        onTouchStart={start} onTouchMove={draw} onTouchEnd={end}
+                    />
+                    <button onClick={clear} className="text-xs text-red-400 mt-2 hover:underline">Clear Signature</button>
+                </div>
+            );
+        };
+
+        // --- COMPONENT: File Uploader ---
+        const FileUploader = ({ label, onUpload }) => {
+            const [file, setFile] = useState(null);
+            const [progress, setProgress] = useState(0);
+            const [preview, setPreview] = useState(null);
+
+            const handleFile = (e) => {
+                const selected = e.target.files[0];
+                if (!selected) return;
+                
+                // Validation
+                if (selected.size > 5 * 1024 * 1024) { alert("File too large (Max 5MB)"); return; }
+
+                setFile(selected);
+                
+                // Simulate Upload
+                let p = 0;
+                const interval = setInterval(() => {
+                    p += 10;
+                    setProgress(p);
+                    if (p >= 100) clearInterval(interval);
+                }, 100);
+
+                // Base64 Preview
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPreview(reader.result);
+                    onUpload({ name: selected.name, data: reader.result }); // Pass Base64 up
+                };
+                reader.readAsDataURL(selected);
+            };
+
+            return (
+                <div className="p-4 border border-dashed border-white/20 rounded hover:bg-white/5 transition">
+                    <div className="flex items-center gap-3">
+                        <div className="text-2xl">📎</div>
+                        <div className="flex-1">
+                            <div className="text-sm font-bold">{label}</div>
+                            {file ? (
+                                <div className="text-xs text-green-400">{file.name}</div>
+                            ) : (
+                                <div className="text-xs opacity-50">PDF, JPG (Max 5MB)</div>
+                            )}
+                        </div>
+                        <label className="cursor-pointer bg-slate-700 px-3 py-1 rounded text-xs hover:bg-slate-600">
+                            Select
+                            <input type="file" className="hidden" onChange={handleFile} accept=".pdf,.jpg,.png" />
+                        </label>
+                    </div>
+                    {progress > 0 && progress < 100 && (
+                        <div className="w-full h-1 bg-gray-700 mt-2 rounded overflow-hidden">
+                            <div className="h-full bg-green-500 transition-all duration-300" style={{width: `${progress}%`}}></div>
+                        </div>
+                    )}
+                    {preview && file && file.type.startsWith('image/') && (
+                        <img src={preview} alt="Preview" className="mt-2 h-16 rounded border border-white/10" />
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [step, setStep] = useState(1);
+            const totalSteps = 9;
+            const [currency, setCurrency] = useState('ZAR');
+            const [exchangeRates, setExchangeRates] = useState({ USD: 18.50, EUR: 20.10 });
+            const [clientSignature, setClientSignature] = useState(null);
+
+            // --- MAIN STATE ---
+            const [data, setData] = useState({
+                hotel: { name: '', address: '', phone: '', email: '', website: '', rooms: 18, stars: 3, occPercent: '', arr: '', googleRating: '' },
+                apis: { nightsbridge: '', micros: '', gaap: '', posName: '', pmsName: '', paymentGateway: '' },
+                languages: { english: true, big4: false, extraSelection: [] },
+                dashboard: true,
+                departments: { hk: false, maint: false, fo: false, rest: false, hr: false, dineplan: false },
+                security: true,
+                aiFeatures: { guestRelations: false, routing: false, shot: false, planner: false, upsell: false, learning: false, altaiVision: false },
+                revenueCenters: { restaurants: 1, bars: 1, pools: 0, spas: 0, gyms: 0, casinos: 0, coffeeShops: 0, functionRooms: 0, shops: 0, salons: 0, entertainment: 0, miniBar: 0, laundry: 0 },
+                rvcConfig: {}, 
+                roomService: { hasMenu: false, menuFile: null },
+                contacts: { gm: { name: '', phone: '', email: '' }, agm: { name: '', phone: '', email: '' }, security: { name: '', phone: '', company: '' }, roomsDiv: { name: '', phone: '', email: '' }, frontOffice: { name: '', phone: '', email: '' }, reservations: { name: '', phone: '', email: '' }, maintenance: { name: '', phone: '', email: '' }, housekeeping: { name: '', phone: '', email: '' }, hr: { name: '', phone: '', email: '' }, fnb: { name: '', phone: '', email: '' }, banqueting: { name: '', phone: '', email: '' }, finance: { name: '', phone: '', email: '' } },
+                wifi: { ssid: '', password: '' },
+                checkIn: { time: '14:00', earlyAvailable: false, earlyCost: '' },
+                checkOut: { time: '11:00', lateAvailable: false, lateCost: '' },
+                airportShuttle: { provider: '', contact: '', phone: '', rate: '', hours: '' },
+                localShuttle: { provider: '', contact: '', phone: '' },
+                loadshedding: { zone: '', backupPower: false, generatorCoverage: '' },
+                docs: { hr: null, rules: null, liability: null },
+                brand: { aiName: 'James', color: '#8B2500', tone: 'Friendly' }
+            });
+
+            // --- AUTOSAVE ENGINE (No Data Loss) ---
+            useEffect(() => {
+                const savedData = localStorage.getItem('orion_architect_data');
+                if (savedData) {
+                    try {
+                        setData(JSON.parse(savedData));
+                        console.log('Restored session from Autosave');
+                    } catch (e) { console.error('Autosave corrupt', e); }
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('orion_architect_data', JSON.stringify(data));
+            }, [data]);
+
+            // --- CURRENCY FETCH ---
+            useEffect(() => {
+                const fetchRate = async () => {
+                    try {
+                        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+                        const r = await res.json();
+                        if (r && r.rates) setExchangeRates({ USD: r.rates.ZAR, EUR: r.rates.ZAR / r.rates.EUR });
+                    } catch (e) { console.warn('Forex fallback'); }
+                };
+                fetchRate();
+            }, []);
+
+            const formatMoney = (amountZAR) => {
+                if (currency === 'ZAR') return `R ${amountZAR.toLocaleString()}`;
+                if (currency === 'USD') return `$ ${(amountZAR / exchangeRates.USD).toFixed(0)}`;
+                if (currency === 'EUR') return `€ ${(amountZAR / exchangeRates.EUR).toFixed(0)}`;
+            };
+
+            const [totals, setTotals] = useState({ setup: 0, monthly: 0, breakdown: [] });
+            const [paid, setPaid] = useState(false);
+            const [expandedRvc, setExpandedRvc] = useState(null);
+
+            // --- PRICING ENGINE ---
+            useEffect(() => {
+                let setup = 0; let monthly = 0; const breakdown = [];
+                // Base
+                setup += 6250; monthly += 1275; breakdown.push({ item: 'Base Package (18 rooms)', setup: 6250, monthly: 1275 });
+                // Langs
+                if (data.languages.big4) { setup += 5000; monthly += 1500; breakdown.push({ item: 'Big 4 Language Bundle', setup: 5000, monthly: 1500 }); }
+                if (data.languages.extraSelection.length > 0) { const c = data.languages.extraSelection.length; monthly += c * 250; breakdown.push({ item: `Extra Languages (${c})`, setup: 0, monthly: c * 250 }); }
+                // Modules
+                if (data.dashboard) { setup += 2990; breakdown.push({ item: 'Mission Control Dashboard', setup: 2990, monthly: 0 }); }
+                if (data.departments.hk) { monthly += 500; breakdown.push({ item: 'Housekeeping', setup: 0, monthly: 500 }); }
+                if (data.departments.maint) { monthly += 500; breakdown.push({ item: 'Maintenance', setup: 0, monthly: 500 }); }
+                if (data.departments.fo) { monthly += 500; breakdown.push({ item: 'Front Office', setup: 0, monthly: 500 }); }
+                if (data.departments.rest) { monthly += 500; breakdown.push({ item: 'Restaurant', setup: 0, monthly: 500 }); }
+                if (data.departments.hr) { monthly += 400; breakdown.push({ item: 'HR Module', setup: 0, monthly: 400 }); }
+                if (data.departments.dineplan) { monthly += 600; breakdown.push({ item: 'Dineplan Integration', setup: 0, monthly: 600 }); }
+                if (data.security) { setup += 1999; breakdown.push({ item: 'Security Core', setup: 1999, monthly: 0 }); }
+                // AI
+                const coreAi = data.aiFeatures.guestRelations && data.aiFeatures.routing && data.aiFeatures.shot && data.aiFeatures.planner;
+                if (data.aiFeatures.guestRelations) { monthly += 1450; breakdown.push({ item: 'Gemini 3 Guest Relations', setup: 0, monthly: 1450 }); }
+                if (data.aiFeatures.routing) { monthly += 1450; breakdown.push({ item: 'Gemini 3 Routing', setup: 0, monthly: 1450 }); }
+                if (data.aiFeatures.shot) { monthly += 950; breakdown.push({ item: "Gemini 3 Sho't Left", setup: 0, monthly: 950 }); }
+                if (data.aiFeatures.planner) { monthly += 1450; breakdown.push({ item: 'Gemini 3 Planner', setup: 0, monthly: 1450 }); }
+                if (data.aiFeatures.altaiVision) { monthly += 2500; setup += 5000; breakdown.push({ item: 'Gemini 3 Vision', setup: 5000, monthly: 2500 }); }
+                if (data.aiFeatures.upsell) { const p = coreAi ? 0 : 3999; monthly += p; breakdown.push({ item: 'Gemini 3 Upsell', setup: 0, monthly: p, promo: coreAi ? 'FREE' : '' }); }
+                if (data.aiFeatures.learning) { const p = coreAi ? 0 : 3999; monthly += p; breakdown.push({ item: 'Gemini 3 L&D', setup: 0, monthly: p, promo: coreAi ? 'FREE' : '' }); }
+                // RVCs
+                const rcPrices = { restaurants: 1690, bars: 990, pools: 450, spas: 750, gyms: 550, casinos: 950, coffeeShops: 750, functionRooms: 690, shops: 300, salons: 350, entertainment: 850, miniBar: 450, laundry: 550 };
+                Object.keys(data.revenueCenters).forEach(k => { const c = data.revenueCenters[k]; if (c > 0) { setup += c * 650; monthly += c * rcPrices[k]; breakdown.push({ item: `${k} (${c})`, setup: c*650, monthly: c*rcPrices[k] }); } });
+                // Rooms
+                if (data.hotel.rooms > 18) { const ex = data.hotel.rooms - 18; const r = data.hotel.stars === 3 ? 27 : data.hotel.stars === 4 ? 45 : 69; monthly += ex * r; breakdown.push({ item: `Extra Rooms (${ex})`, setup: 0, monthly: ex * r }); }
+                // Star
+                let mult = data.hotel.stars === 4 ? 1.15 : data.hotel.stars === 5 ? 1.35 : 0.95; 
+                const adj = Math.round(1275 * mult) - 1275; 
+                if (adj !== 0) { monthly += adj; breakdown.push({ item: 'Star Rating Adj', setup: 0, monthly: adj }); }
+
+                setTotals({ setup, monthly, breakdown });
+            }, [data]);
+
+            // --- HELPERS ---
+            const update = (path, value) => {
+                const keys = path.split('.');
+                setData(prev => {
+                    const newData = { ...prev };
+                    let current = newData;
+                    for (let i = 0; i < keys.length - 1; i++) { current[keys[i]] = { ...current[keys[i]] }; current = current[keys[i]]; }
+                    current[keys[keys.length - 1]] = value;
+                    return newData;
+                });
+            };
+            const toggleExtraLanguage = (lang) => {
+                setData(prev => {
+                    const list = prev.languages.extraSelection.includes(lang) ? prev.languages.extraSelection.filter(l => l !== lang) : [...prev.languages.extraSelection, lang];
+                    return { ...prev, languages: { ...prev.languages, extraSelection: list }};
+                });
+            };
+            const updateRvcConfig = (rvcKey, field, value) => update(`rvcConfig.${rvcKey}.${field}`, value);
+            const simulateGoogleSearch = () => setData(prev => ({...prev, hotel: {...prev.hotel, name: "Orion Grand Hotel & Spa", address: "123 Sandton Drive, Johannesburg", phone: "+27 11 555 0000", website: "www.oriongrand.com", googleRating: "4.8", occPercent: "72", arr: "2450"}}));
+            const handlePay = () => { const yoco = new window.YocoSDK({ publicKey: YOCO_KEY }); yoco.showPopup({ amountInCents: totals.setup * 100, currency: 'ZAR', name: 'Orion Implementation', callback: (result) => { if (!result.error) { setPaid(true); alert('Payment successful!'); } } }); };
+
+            // --- EXPORT & DOWNLOAD LOGIC ---
+            const generateLegalText = () => `
+TERMS & CONDITIONS
+------------------
+1. AGREEMENT: By signing below, the Client agrees to the Orion Hotel Suite Service Agreement.
+2. SUBSCRIPTION: Monthly subscription begins upon go-live (typically 4 days post-payment).
+3. FEES: Setup fee is non-refundable.
+4. DATA PRIVACY: Orion Dev Core acts as Data Processor under POPI Act; Client is Responsible Party.
+   Guest chat data is deleted 48 hours post-checkout. Backup logs retained for service improvement (anonymized).
+5. CANCELLATION: 30-day written notice required. No refunds for partial months.
+6. SLA: 99.9% uptime. Critical issues target resolution within 2 hours.
+            `;
+
+            const handleExport = (type) => {
+                const now = new Date();
+                const timestamp = now.toISOString();
+                const fmt = (val) => currency === 'ZAR' ? `R ${val.toLocaleString()}` : (currency === 'USD' ? `$ ${(val / exchangeRates.USD).toFixed(0)}` : `€ ${(val / exchangeRates.EUR).toFixed(0)}`);
+                
+                // Common Data Content
+                const contentBody = `
+HOTEL: ${data.hotel.name.toUpperCase()}
+DATE: ${now.toLocaleString()}
+REF: ORION-${Math.floor(Math.random()*10000)}
+
+COMMERCIAL SUMMARY
+------------------
+Setup:   ${formatMoney(totals.setup)}
+Monthly: ${formatMoney(totals.monthly)}
+
+MODULES SELECTED
+----------------
+${totals.breakdown.map(i => `- ${i.item}: ${fmt(i.monthly)}/m`).join('\n')}
+
+${generateLegalText()}
+
+SIGNED BY: ${data.contacts.gm.name}
+DATE: ${now.toLocaleDateString()}
+                `;
+
+                if (type === 'json') {
+                    const blob = new Blob([JSON.stringify({ data, totals, signature: clientSignature }, null, 2)], { type: 'application/json' });
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ORION_${data.hotel.name}_Config.json`; a.click();
+                } else if (type === 'md') {
+                    const blob = new Blob([contentBody], { type: 'text/markdown' });
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ORION_${data.hotel.name}_Spec.md`; a.click();
+                } else if (type === 'pdf') {
+                    // PDF Generation with Signature
+                    const element = document.createElement('div');
+                    element.innerHTML = `
+                        <div style="padding: 20px; font-family: monospace;">
+                            <h1 style="color: #8B2500;">ORION COMMERCIAL AGREEMENT</h1>
+                            <pre style="white-space: pre-wrap;">${contentBody}</pre>
+                            ${clientSignature ? `<div style="margin-top:20px;"><strong>CLIENT SIGNATURE:</strong><br/><img src="${clientSignature}" width="200"/></div>` : ''}
+                        </div>
+                    `;
+                    html2pdf().from(element).save(`ORION_CONTRACT_${data.hotel.name}.pdf`);
+                }
+            };
+
+            const sendEmail = () => {
+                const subject = encodeURIComponent(`Orion Proposal: ${data.hotel.name}`);
+                const body = encodeURIComponent(`Please find attached the Commercial Architecture for ${data.hotel.name}.\n\nTotal Monthly: ${formatMoney(totals.monthly)}\nTotal Setup: ${formatMoney(totals.setup)}`);
+                window.location.href = `mailto:${data.hotel.email}?subject=${subject}&body=${body}`;
+            };
+
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    {/* PRICE BADGE */}
+                    <div className="price-badge">
+                        <div className="currency-toggle">
+                            {['ZAR', 'USD', 'EUR'].map(c => <button key={c} className={`currency-btn ${currency === c ? 'active' : ''}`} onClick={() => setCurrency(c)}>{c}</button>)}
+                        </div>
+                        <div className="text-xs font-mono uppercase opacity-60 mb-2">Live Total ({currency})</div>
+                        <div className="mb-3">
+                            <div className="text-xs opacity-60">Monthly</div>
+                            <div className="text-2xl font-bold font-mono">{formatMoney(totals.monthly)}</div>
+                        </div>
+                        <div className="border-t border-white/20 pt-3">
+                            <div className="text-xs opacity-60">Setup</div>
+                            <div className="text-xl font-bold font-mono">{formatMoney(totals.setup)}</div>
+                        </div>
+                        {paid && <div className="mt-3 bg-green-500 text-xs font-bold px-2 py-1 rounded text-center">✓ PAID</div>}
+                    </div>
+
+                    {/* HEADER */}
+                    <div className="max-w-6xl mx-auto mb-8">
+                        <h1 className="text-4xl md:text-5xl font-bold mb-2">ORION <span style={{color: '#FFB627'}}>COMMERCIAL ARCHITECT</span></h1>
+                        <p className="text-sm opacity-60 mb-4">Step {step}/{totalSteps} | Gemini Edition v14.0</p>
+                        <div className="progress-bar"><div className="progress-fill" style={{ width: `${(step/totalSteps)*100}%` }}></div></div>
+                    </div>
+
+                    <div className="max-w-6xl mx-auto">
+                        {/* STEP 1 */}
+                        {step === 1 && (
+                            <div className="card">
+                                <h2 className="text-2xl font-bold mb-6">1. Hotel Identity & Search</h2>
+                                <div className="mb-8 p-4 bg-white/5 rounded border border-white/10 flex gap-4 items-center">
+                                    <input className="input-field" placeholder="Search Hotel on Google Maps..." />
+                                    <button onClick={simulateGoogleSearch} className="btn-outline whitespace-nowrap">Auto-Populate (Sim)</button>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                                    <input className="input-field" placeholder="Hotel Name" value={data.hotel.name} onChange={e => update('hotel.name', e.target.value)} />
+                                    <input className="input-field" placeholder="Email" value={data.hotel.email} onChange={e => update('hotel.email', e.target.value)} />
+                                    <input className="input-field" placeholder="Phone" value={data.hotel.phone} onChange={e => update('hotel.phone', e.target.value)} />
+                                    <input className="input-field" placeholder="Website" value={data.hotel.website} onChange={e => update('hotel.website', e.target.value)} />
+                                    <textarea className="input-field md:col-span-2" placeholder="Address" rows="2" value={data.hotel.address} onChange={e => update('hotel.address', e.target.value)}></textarea>
+                                </div>
+                                <div className="grid md:grid-cols-4 gap-6 mb-6 items-end">
+                                    <div className="relative">
+                                        <label className="label">Total Rooms</label>
+                                        <div className="flex items-center gap-2">
+                                            <button className="w-12 h-12 bg-slate-700 rounded hover:bg-slate-600 font-bold text-2xl" onClick={() => update('hotel.rooms', Math.max(1, data.hotel.rooms - 1))}>-</button>
+                                            <input type="number" className="input-field text-center font-bold text-xl" style={{height: '3rem'}} value={data.hotel.rooms} onChange={e => update('hotel.rooms', parseInt(e.target.value) || 18)} />
+                                            <button className="w-12 h-12 bg-slate-700 rounded hover:bg-slate-600 font-bold text-2xl" onClick={() => update('hotel.rooms', data.hotel.rooms + 1)}>+</button>
+                                        </div>
+                                    </div>
+                                    <div><label className="label">Star Rating</label><select className="input-field" value={data.hotel.stars} onChange={e => update('hotel.stars', parseInt(e.target.value))}><option value={3}>3 Star</option><option value={4}>4 Star</option><option value={5}>5 Star</option></select></div>
+                                    <div><label className="label">Google Rating</label><input className="input-field" placeholder="4.5" value={data.hotel.googleRating} onChange={e => update('hotel.googleRating', e.target.value)} /></div>
+                                    <div><label className="label">Current Occ %</label><input className="input-field" placeholder="%" value={data.hotel.occPercent} onChange={e => update('hotel.occPercent', e.target.value)} /></div>
+                                </div>
+                                <h3 className="text-lg font-bold mb-4 mt-8">API Integrations</h3>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    {['nightsbridge', 'micros', 'gaap', 'posName', 'pmsName', 'paymentGateway'].map(k => <input key={k} className="input-field" placeholder={k.toUpperCase()} value={data.apis[k]} onChange={e => update(`apis.${k}`, e.target.value)} />)}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 2 */}
+                        {step === 2 && (
+                            <div className="card">
+                                <h2 className="text-2xl font-bold mb-6">2. Language Selection</h2>
+                                <div className="space-y-4">
+                                    <div className="module-card active opacity-70 cursor-not-allowed flex justify-between items-center"><span className="font-bold">1. BASE ENGLISH</span><span className="font-mono text-sm">INCLUDED</span></div>
+                                    <div className={`module-card ${data.languages.big4 ? 'active' : ''} flex justify-between items-center`} onClick={() => update('languages.big4', !data.languages.big4)}><div><span className="font-bold">2. BIG 4 BUNDLE</span><div className="text-xs opacity-60">Eng, Af, Zu, Xh</div></div><span className="font-mono text-sm">{formatMoney(1500)}/m</span></div>
+                                    <div className="p-4 bg-white/5 rounded border border-white/10">
+                                        <label className="label mb-2">3. International Languages ({formatMoney(250)}/m)</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            {['Sesotho', 'Setswana', 'Tshivenda', 'Xitsonga', 'SiSwati', 'isiNdebele', 'Mandarin', 'Japanese', 'Hindi', 'French', 'German', 'Spanish', 'Portuguese', 'Swahili', 'Shona'].map(lang => (
+                                                <label key={lang} className="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-2 rounded"><input type="checkbox" checked={data.languages.extraSelection.includes(lang)} onChange={() => toggleExtraLanguage(lang)} /><span className="text-sm">{lang}</span></label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 3 */}
+                        {step === 3 && (
+                            <div className="card">
+                                <h2 className="text-2xl font-bold mb-6">3. Mission Control Dashboard</h2>
+                                <div className={`module-card ${data.dashboard ? 'active' : ''} mb-6 p-6`} onClick={() => update('dashboard', !data.dashboard)}>
+                                    <div className="flex justify-between items-start mb-4"><div className="font-bold text-xl">Mission Control Center</div><span className="font-mono text-sm bg-blue-900/50 px-2 py-1 rounded text-blue-300">YES / NO</span></div>
+                                    <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-300">
+                                        <div className="bg-black/20 p-2 rounded"><strong className="block text-[#FFB627] mb-1">LIVE METRICS</strong>• Occ % & ARR<br/>• F&B Revenue<br/>• Gemini API Token Count</div>
+                                        <div className="bg-black/20 p-2 rounded"><strong className="block text-[#FFB627] mb-1">OPERATIONS</strong>• Tickets (HK/FO/Maint)<br/>• Weather (26°)<br/>• Eskom SePush Status</div>
+                                        <div className="bg-black/20 p-2 rounded"><strong className="block text-[#FFB627] mb-1">MANAGEMENT</strong>• HR/Legal Docs<br/>• PMS/Guest Security<br/>• API Vault</div>
+                                    </div>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    {Object.entries({hk: 'Housekeeping', maint: 'Maintenance', fo: 'Front Office', rest: 'Restaurant', hr: 'Human Resources', dineplan: 'Dineplan Integration'}).map(([k, l]) => (
+                                        <div key={k} className={`module-card ${data.departments[k] ? 'active' : ''} flex justify-between items-center`} onClick={() => update(`departments.${k}`, !data.departments[k])}><span className="font-bold">{l}</span><span className="font-mono text-sm">{formatMoney(k==='hr'?400:k==='dineplan'?600:500)}/m</span></div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 4 */}
+                        {step === 4 && (
+                            <div className="card">
+                                <h2 className="text-2xl font-bold mb-6">4. Security & Compliance</h2>
+                                <div className={`module-card ${data.security ? 'active neon-green' : ''} mb-6 transition-all duration-500`} onClick={() => update('security', !data.security)}>
+                                    <div className="flex items-center gap-4"><div className={`w-4 h-4 rounded-full ${data.security ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500'}`}></div><div className="flex-1"><div className="font-bold text-lg">POPI Act & Privacy Shield</div><div className="text-xs opacity-70 mt-1">Real-time Data Encryption • In-House Guest Data Secure</div></div><span className="font-mono text-sm">{formatMoney(1999)} setup</span></div>
+                                </div>
+                                {data.security && (
+                                    <div className="sim-terminal">
+                                        <div className="flex justify-between border-b border-gray-700 pb-2 mb-2"><span>SECURITY COMMAND CONSOLE</span><span className="blink">● LIVE</span></div>
+                                        <div className="grid grid-cols-2 gap-2"><div><p>> ACCESS_CONTROL_LIST.... <span className="text-white">LOADED</span></p><p>> FIREWALL_STATUS........ <span className="text-white">ACTIVE</span></p></div><div><p>> POPI_COMPLIANCE........ <span className="text-white">VERIFIED</span></p><p>> GUEST_DATA_VAULT....... <span className="text-white">LOCKED</span></p></div></div>
+                                        <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-400">SYSTEM SECURE. ALL GREEN LIGHTS OPERATIONAL.</div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* STEP 5 */}
+                        {step === 5 && (
+                            <div className="card border-blue-500/30">
+                                <h2 className="text-2xl font-bold mb-2 text-blue-400">5. A.I. GEMINI C.N.S</h2>
+                                <p className="text-sm text-blue-300/60 mb-6 uppercase tracking-widest">Central Nervous System • Gemini 3 Flash Preview</p>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    {[ { key: 'guestRelations', label: 'Gemini 3 AI Guest Relations', price: 1450 }, { key: 'routing', label: 'Gemini 3 AI Routing (Agentic)', price: 1450 }, { key: 'shot', label: "Gemini 3 AI Sho't Left", price: 950 }, { key: 'planner', label: 'Gemini 3 AI Planner', price: 1450 } ].map(f => (
+                                        <div key={f.key} className={`module-card ${data.aiFeatures[f.key] ? 'active' : ''} flex justify-between items-center`} onClick={() => update(`aiFeatures.${f.key}`, !data.aiFeatures[f.key])}><span className="font-bold">{f.label}</span><span className="font-mono text-sm">{formatMoney(f.price)}/m</span></div>
+                                    ))}
+                                    {[ { key: 'upsell', label: 'Gemini 3 AI Upsell', price: 3999 }, { key: 'learning', label: 'Gemini 3 AI L&D', price: 3999 } ].map(f => {
+                                        const core = data.aiFeatures.guestRelations && data.aiFeatures.routing && data.aiFeatures.shot && data.aiFeatures.planner;
+                                        return <div key={f.key} className={`module-card ${data.aiFeatures[f.key] ? 'active' : ''} ${core ? 'border-green-500' : ''} flex justify-between items-center`} onClick={() => update(`aiFeatures.${f.key}`, !data.aiFeatures[f.key])}><span className="font-bold">{f.label}</span><div className="text-right"><span className={`font-mono text-sm block ${core ? 'line-through opacity-50' : ''}`}>{formatMoney(f.price)}/m</span>{core && <span className="text-xs text-green-400 font-bold">FREE (BUNDLE)</span>}</div></div>
+                                    })}
+                                    <div className={`module-card md:col-span-2 ${data.aiFeatures.altaiVision ? 'active' : ''} flex justify-between items-center`} onClick={() => update('aiFeatures.altaiVision', !data.aiFeatures.altaiVision)}><span className="font-bold text-red-400">GEMINI 3 AI VISION</span><span className="font-mono text-sm">{formatMoney(2500)}/m + Setup</span></div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 6 */}
+                        {step === 6 && (
+                            <div className="card">
+                                <h2 className="text-2xl font-bold mb-6">6. Revenue Centers</h2>
+                                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                                    {['restaurants','bars','miniBar','laundry','pools','spas','gyms','casinos','coffeeShops','functionRooms','shops','salons','entertainment'].map(k => (
+                                        <div key={k} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <div className="text-sm font-bold uppercase">{k.replace(/([A-Z])/g, ' $1')}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => update(`revenueCenters.${k}`, Math.max(0, data.revenueCenters[k] - 1))} className="w-8 h-8 bg-red-900/30 rounded">-</button>
+                                                    <span className="w-6 text-center text-xl font-bold">{data.revenueCenters[k]}</span>
+                                                    <button onClick={() => update(`revenueCenters.${k}`, data.revenueCenters[k] + 1)} className="w-8 h-8 bg-green-900/30 rounded">+</button>
+                                                </div>
+                                            </div>
+                                            {data.revenueCenters[k] > 0 && (
+                                                <>
+                                                    <button onClick={() => setExpandedRvc(expandedRvc === k ? null : k)} className="text-[#FFB627] text-xs underline mb-2 block">{expandedRvc === k ? 'Hide Config' : 'Configure'}</button>
+                                                    {expandedRvc === k && (
+                                                        <div className="rvc-config-panel text-sm animate-fade-in">
+                                                            <input className="input-field mb-2 py-1" placeholder="Outlet Name" value={data.rvcConfig[k]?.name || ''} onChange={e => updateRvcConfig(k, 'name', e.target.value)} />
+                                                            <div className="grid grid-cols-2 gap-2 mb-2"><input className="input-field py-1" placeholder="Times" value={data.rvcConfig[k]?.times || ''} onChange={e => updateRvcConfig(k, 'times', e.target.value)} /><input className="input-field py-1" placeholder="Dress Code" value={data.rvcConfig[k]?.dress || ''} onChange={e => updateRvcConfig(k, 'dress', e.target.value)} /></div>
+                                                            <FileUploader label="Upload Menu" onUpload={(f) => updateRvcConfig(k, 'menu', f)} />
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 7 */}
+                        {step === 7 && (
+                            <div className="card">
+                                <h2 className="text-2xl font-bold mb-6">7. Key Contacts</h2>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    {Object.keys(data.contacts).map(r => (
+                                        <div key={r} className="space-y-3">
+                                            <div className="text-sm font-bold uppercase" style={{color: '#C15817'}}>{r.replace(/([A-Z])/g, ' $1')}</div>
+                                            <input className="input-field" placeholder="Name" value={data.contacts[r].name} onChange={e => update(`contacts.${r}.name`, e.target.value)} />
+                                            <input className="input-field" placeholder="Phone" value={data.contacts[r].phone} onChange={e => update(`contacts.${r}.phone`, e.target.value)} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 8 */}
+                        {step === 8 && (
+                            <div className="card">
+                                <h2 className="text-2xl font-bold mb-6">8. Ops & Uploads</h2>
+                                <div className="grid md:grid-cols-2 gap-4 mb-8">
+                                    <input className="input-field" placeholder="WiFi SSID" value={data.wifi.ssid} onChange={e => update('wifi.ssid', e.target.value)} />
+                                    <input className="input-field" placeholder="WiFi Pass" value={data.wifi.password} onChange={e => update('wifi.password', e.target.value)} />
+                                </div>
+                                <h3 className="text-lg font-bold mb-4">Document Vault</h3>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <FileUploader label="HR Docs" onUpload={(f) => update('docs.hr', f)} />
+                                    <FileUploader label="Pool Rules" onUpload={(f) => update('docs.rules', f)} />
+                                    <FileUploader label="Liability" onUpload={(f) => update('docs.liability', f)} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 9 - FINAL */}
+                        {step === 9 && (
+                            <div className="grid md:grid-cols-3 gap-8">
+                                <div className="md:col-span-2 card">
+                                    <h2 className="text-2xl font-bold mb-6">9. Contract & Sign</h2>
+                                    
+                                    {/* Breakdown */}
+                                    <div className="bg-black/40 p-6 rounded-lg mb-6">
+                                        <div className="space-y-2 max-h-60 overflow-y-auto text-sm">
+                                            {totals.breakdown.map((i, idx) => (
+                                                <div key={idx} className="flex justify-between py-1 border-b border-white/10"><span>{i.item} {i.promo && <span className="text-green-400 text-xs">{i.promo}</span>}</span><span className="font-mono">{i.monthly > 0 && formatMoney(i.monthly)}</span></div>
+                                            ))}
+                                        </div>
+                                        <div className="border-t-2 border-white/20 mt-4 pt-4 flex justify-between text-xl font-bold"><span>MONTHLY</span><span>{formatMoney(totals.monthly)}</span></div>
+                                        <div className="flex justify-between text-xl font-bold text-[#FFB627]"><span>SETUP</span><span>{formatMoney(totals.setup)}</span></div>
+                                    </div>
+
+                                    {/* Terms */}
+                                    <div className="bg-white/5 p-4 rounded text-xs text-gray-400 mb-6 max-h-40 overflow-y-auto">
+                                        <strong className="text-white block mb-2">TERMS & CONDITIONS</strong>
+                                        <p className="mb-2">By signing below, the Client agrees to the Orion Hotel Suite Service Agreement. Monthly subscription begins upon go-live (typically 4 days post-payment). Setup fee is non-refundable.</p>
+                                        <p className="mb-2">Orion Dev Core acts as Data Processor under POPI Act; Client is Responsible Party. Guest chat data is deleted 48 hours post-checkout. Backup logs retained for service improvement (anonymized).</p>
+                                        <p className="mb-2">CANCELLATION: 30-day written notice required. No refunds for partial months.</p>
+                                        <p>SLA: 99.9% uptime. Critical issues are targeted at being resolved within 2 hours.</p>
+                                    </div>
+
+                                    {/* Signature */}
+                                    <div className="mb-6">
+                                        <label className="label">CLIENT SIGNATURE *</label>
+                                        <SignaturePad onSave={setClientSignature} />
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                                        <button onClick={() => handleExport('md')} className="btn-outline text-xs">Download Spec (MD)</button>
+                                        <button onClick={() => handleExport('json')} className="btn-outline text-xs">Export Data (JSON)</button>
+                                        <button onClick={() => handleExport('pdf')} className={`btn-outline text-xs ${!clientSignature ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!clientSignature}>Generate Contract (PDF)</button>
+                                        <button onClick={sendEmail} className="btn-outline text-xs bg-blue-900/30 border-blue-500 text-blue-300">Email Proposal</button>
+                                    </div>
+                                    
+                                    <button onClick={handlePay} disabled={paid || !clientSignature} className="btn w-full flex justify-center items-center gap-2">{paid ? '✓ PAID' : `PAY ${formatMoney(totals.setup)} NOW`}</button>
+                                </div>
+
+                                {/* Sidebar */}
+                                <div>
+                                    <div className="bg-[#1A1E29] p-4 rounded-xl border border-blue-900/50 sticky top-24">
+                                        <h3 className="text-blue-400 text-sm font-bold uppercase tracking-widest mb-3">System Status</h3>
+                                        <div className="space-y-2 text-xs text-gray-400">
+                                            <div className="flex justify-between"><span>Autosave:</span><span className="text-green-400">ACTIVE</span></div>
+                                            <div className="flex justify-between"><span>Data Loss Protection:</span><span className="text-green-400">ON</span></div>
+                                            <div className="flex justify-between"><span>Upload Server:</span><span className="text-green-400">READY</span></div>
+                                            <div className="mt-4 pt-4 border-t border-white/10">
+                                                <strong className="block text-white mb-1">Upload Queue</strong>
+                                                {Object.entries(data.docs).filter(([k,v]) => v).length === 0 && <span className="italic">No files pending</span>}
+                                                {Object.entries(data.docs).map(([k,v]) => v && <div key={k} className="flex justify-between text-green-300"><span>{k}</span><span>✓</span></div>)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* NAVIGATION */}
+                        <div className="flex justify-between mt-8">
+                            <button onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1} className="btn disabled:opacity-30">← BACK</button>
+                            <button onClick={() => setStep(Math.min(totalSteps, step + 1))} disabled={step === totalSteps} className="btn disabled:opacity-30">NEXT →</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
